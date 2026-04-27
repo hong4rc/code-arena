@@ -1,0 +1,26 @@
+# Render blueprint — https://render.com/docs/blueprint-spec
+# Deploy: push this repo to GitHub, then in Render dashboard
+#   New + → Blueprint → connect repo. Render reads this file.
+services:
+  - type: web
+    name: code-arena
+    runtime: docker
+    plan: free                  # 512 MB RAM, sleeps after 15 min idle
+    region: singapore           # change to your nearest region
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/health
+    autoDeploy: true            # redeploy on git push to default branch
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      # Set these via the Render dashboard after first deploy:
+      - key: DATABASE_URL
+        sync: false
+      - key: NEXT_PUBLIC_SUPABASE_URL
+        sync: false
+      - key: NEXT_PUBLIC_SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false

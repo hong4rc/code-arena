@@ -1,0 +1,10 @@
+pre-commit:
+  parallel: true
+  commands:
+    typecheck:
+      run: bun run typecheck
+    lint:
+      glob: "*.{ts,js}"
+      run: bunx eslint {staged_files}
+    test:
+      run: bun test
