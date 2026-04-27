@@ -1,10 +1,8 @@
 // hunter-bot — stalks the lowest-HP visible enemy.
 export default function decide(obs) {
-  // 1. Adjacent enemy? Attack.
+  // 1. Attack anyone in range first (uses WEAPON range if held).
   for (const dir of DIRS) {
-    if (adjacent(obs, dir)?.kind === "bot") {
-      return { type: "ATTACK", dir };
-    }
+    if (canAttack(obs, dir)) return { type: "ATTACK", dir };
   }
 
   // 2. Find the weakest visible enemy and chase them.
@@ -14,7 +12,7 @@ export default function decide(obs) {
     return { type: "MOVE", dir: dirTo(prey.dx, prey.dy) };
   }
 
-  // 3. No enemies in sight — go grab a weapon if we can find one.
+  // 3. No enemies in sight — go grab a weapon.
   const weapon = nearestItem(obs, "WEAPON");
   if (weapon) return { type: "MOVE", dir: dirTo(weapon.dx, weapon.dy) };
 
