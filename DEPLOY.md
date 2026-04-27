@@ -9,6 +9,8 @@ Free tier, no credit card. **~30 min from zero to live URL.**
 | OAuth | Google Cloud | unlimited | ❌ |
 | Anti-sleep ping | UptimeRobot | 50 monitors | ❌ |
 
+> **The plan**: build up `apps/web/.env` as you go. At Render time, paste that whole file into Render's "Add from .env" dialog. Same file works for local dev.
+
 ---
 
 ## Step 1 — Push to GitHub
@@ -16,143 +18,163 @@ Free tier, no credit card. **~30 min from zero to live URL.**
 ```sh
 git push
 ```
-You should already have the `code-arena` repo on github.com/hong4rc.
 
 ---
 
-## Step 2 — Neon (Postgres)
+## Step 2 — Create the `.env` skeleton with the secret already filled
 
-1. <https://console.neon.tech> → **New project**
-2. Name `code-arena`, region nearest your Render region.
-3. Copy the connection string Neon shows. It looks like:
-   ```
-   postgresql://USER:PASS@ep-xxx.us-east-2.aws.neon.tech/code_arena?sslmode=require
-   ```
-4. **Save this** — you'll paste it into Render later as `DATABASE_URL`.
+From the repo root:
+
+```sh
+mkdir -p apps/web
+cat > apps/web/.env <<EOF
+DATABASE_URL=
+AUTH_SECRET=$(openssl rand -base64 32)
+AUTH_URL=https://REPLACE-WITH-RENDER-URL.onrender.com
+NEXT_PUBLIC_APP_URL=https://REPLACE-WITH-RENDER-URL.onrender.com
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+EOF
+```
+
+`AUTH_SECRET` is now a 32-byte random string. The other values you'll fill in below.
+
+> **Note**: `apps/web/.env` is gitignored — never commit it.
 
 ---
 
-## Step 3 — Google Cloud OAuth client
+## Step 3 — Neon (DATABASE_URL)
 
-1. <https://console.cloud.google.com> → top bar → **New Project** → `code-arena` → select it.
-2. Sidebar (≡) → **APIs & Services → OAuth consent screen** → fill in:
+1. <https://console.neon.tech> → sign up with GitHub.
+2. **New project** → name `code-arena`, region nearest you.
+3. After provisioning, the dashboard shows a **Connection string**. Click the copy icon.
+4. Paste it into `apps/web/.env` after `DATABASE_URL=`.
+
+After this step the line should look like:
+```
+DATABASE_URL=postgresql://USER:PASS@ep-xxx.us-east-2.aws.neon.tech/code_arena?sslmode=require
+```
+
+---
+
+## Step 4 — Google Cloud OAuth (GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET)
+
+1. <https://console.cloud.google.com> → top bar project picker → **NEW PROJECT** → name `code-arena` → **CREATE** → select it.
+2. Sidebar (☰) → **APIs & Services → OAuth consent screen** → **Get started**:
    - App name: `Code Arena`
    - User support email + Developer email: yours
-   - User type / Audience: **External**
+   - Audience: **External**
    - Save and skip the rest.
-3. Sidebar → **APIs & Services → Credentials → + Create Credentials → OAuth client ID**.
+3. Sidebar → **APIs & Services → Credentials → + CREATE CREDENTIALS → OAuth client ID**.
 4. Application type: **Web application**. Name: `Code Arena web`.
 5. **Authorized redirect URIs** — add **two**:
    - `http://localhost:3000/api/auth/callback/google`
-   - `https://code-arena.onrender.com/api/auth/callback/google` *(use the real Render URL once you have it after Step 4)*
-6. Click **Create**. The modal shows two values — **copy both right now**:
-   - **Client ID** → save as `GOOGLE_CLIENT_ID`
-   - **Client secret** → save as `GOOGLE_CLIENT_SECRET`
+   - `https://REPLACE-WITH-RENDER-URL.onrender.com/api/auth/callback/google`
+6. **CREATE** → popup shows Client ID + Client secret.
+7. Paste both into `apps/web/.env`:
+   ```
+   GOOGLE_CLIENT_ID=<paste>
+   GOOGLE_CLIENT_SECRET=<paste>
+   ```
+
+(You'll come back to fix the Render URL after Step 5.)
 
 ---
 
-## Step 4 — Render (deploy)
+## Step 5 — Render (deploy)
 
-1. <https://dashboard.render.com> → **New + → Blueprint** → connect `hong4rc/code-arena`.
-2. Render reads `render.yaml`, previews one Web Service, click **Apply**.
-3. First build takes ~5–8 min (compiles nsjail). Watch the build log.
-4. When it shows "Live", you'll see a URL like `https://code-arena.onrender.com`. **Save this URL.**
-5. Go back to **Step 3.5** and replace the placeholder Render URL in Google Cloud OAuth redirect URIs with this real one. Save.
-
----
-
-## Step 5 — Set Render environment variables
-
-**Render dashboard → code-arena → Environment** — add each row below:
-
-| Variable | Where to get the value |
-|---|---|
-| `DATABASE_URL` | from **Step 2** (Neon connection string) |
-| `AUTH_SECRET` | run locally: `openssl rand -base64 32` and paste the output |
-| `AUTH_URL` | your Render URL, e.g. `https://code-arena.onrender.com` |
-| `NEXT_PUBLIC_APP_URL` | same as `AUTH_URL` |
-| `GOOGLE_CLIENT_ID` | from **Step 3.6** |
-| `GOOGLE_CLIENT_SECRET` | from **Step 3.6** |
-
-`NODE_ENV=production` and `PORT=3000` are already set by `render.yaml` — don't add them again.
-
-Render auto-redeploys on save. Wait ~1 min for it to come back up.
+1. <https://dashboard.render.com> → sign up with GitHub.
+2. **+ New → Blueprint** → pick `hong4rc/code-arena` → **Apply**.
+3. Wait 5–8 min for the first build.
+4. When status shows **Live**, copy the URL it gave you (e.g. `https://code-arena-xxxx.onrender.com`).
+5. Update `apps/web/.env` — replace **both** `REPLACE-WITH-RENDER-URL` strings with this real URL:
+   ```sh
+   sed -i '' 's|https://REPLACE-WITH-RENDER-URL.onrender.com|https://code-arena-xxxx.onrender.com|g' apps/web/.env
+   ```
+   *(macOS — for Linux drop the `''` after `-i`)*
+6. **Back to Google Cloud** → Credentials → Code Arena web → fix the second redirect URI to match the real Render URL → **SAVE**.
 
 ---
 
-## Step 6 — Run migrations + seed (from your laptop)
+## Step 6 — Push your `.env` into Render
 
-Use the **same** Neon URL from Step 2. From the repo root:
+Render's dashboard has a bulk-paste feature.
+
+1. Render dashboard → **code-arena → Environment** tab.
+2. Click **Add from .env**.
+3. Open `apps/web/.env`, copy the entire contents, paste into the dialog.
+4. **Save Changes**. Render auto-redeploys (~1 min).
+
+---
+
+## Step 7 — Run migrations + seed
+
+From your terminal in the repo root:
 
 ```sh
-export DATABASE_URL='postgresql://USER:PASS@ep-xxx.us-east-2.aws.neon.tech/code_arena?sslmode=require'
+set -a && source apps/web/.env && set +a
 bun install --frozen-lockfile
 
-cd packages/db && bun run migrate    # creates all tables
-cd ../..
-bun packages/db/src/seed.ts          # adds system user, Season 1, 4 sample bots
+cd packages/db && bun run migrate && cd ../..
+bun packages/db/src/seed.ts
 ```
 
-Verify in Neon **SQL Editor**:
-```sql
-SELECT count(*) FROM users;        -- 1
-SELECT count(*) FROM bots;         -- 4 (the official samples)
-SELECT name, is_active FROM seasons;  -- "Season 1" / true
-```
+You should see `created system user`, `created Season 1`, and 4 `seeded *-bot` lines.
 
 ---
 
-## Step 7 — Sign in once + promote yourself to admin
+## Step 8 — First sign-in + make yourself admin
 
 1. Open your Render URL → **Sign in** → Google flow → land on `/bots`.
-2. Neon **SQL Editor**:
+2. Neon dashboard → **SQL Editor** → run:
    ```sql
    UPDATE users SET role = 'admin' WHERE email = 'YOU@example.com';
    ```
 
 ---
 
-## Step 8 — UptimeRobot keep-alive
+## Step 9 — Anti-sleep pinger
 
-Render free sleeps after 15 min idle. Ping `/api/health` every 5 min to keep it warm.
-
-1. <https://uptimerobot.com> → sign up.
+1. <https://uptimerobot.com> → **Sign Up Free**.
 2. **+ Add New Monitor**:
    - Type: **HTTPS**
-   - URL: `https://code-arena.onrender.com/api/health`
+   - Name: `code-arena keep-alive`
+   - URL: `https://YOUR-RENDER-URL.onrender.com/api/health`
    - Interval: **5 minutes**
-
-That's it.
+3. **Create Monitor**.
 
 ---
 
-## Step 9 — Smoke test
+## Step 10 — Smoke test
 
-1. `/samples` → click **Clone** on `greedy-bot` → editor opens with the code.
-2. **Save** → validation runs, "OK" → bot is enrolled in matchmaking.
-3. Repeat clone+save 19 more times (matchmaker needs ≥ 20 active bots before it'll create a match) — or insert a custom match via SQL (see "Day-2" below).
-4. Open `/matches`. After up to 5 min you'll see one in `running`. Click **Watch live →** to see ticks stream over WebSocket on the canvas.
+1. `/samples` → **Clone** the `greedy-bot` card → editor opens. **Save**.
+2. Repeat 19 more times (matchmaker needs ≥ 20 active bots) — or shortcut via Neon SQL:
+   ```sql
+   WITH m AS (
+     INSERT INTO matches (season_id, kind, status, seed)
+     SELECT id, 'custom', 'pending', floor(random()*1000000)::int
+     FROM seasons WHERE is_active LIMIT 1
+     RETURNING id
+   )
+   INSERT INTO match_participants (match_id, bot_id, bot_version_id)
+   SELECT m.id, b.id, b.current_version_id FROM m, bots b WHERE b.is_official LIMIT 4;
+   ```
+3. `/matches` → wait up to 5 min → click **Watch live →** when one is `running`.
 
 ---
 
 ## Local development
 
-`apps/web/.env`:
-
-| Variable | Value |
-|---|---|
-| `DATABASE_URL` | your Neon URL |
-| `AUTH_SECRET` | `openssl rand -base64 32` (or any random string for dev) |
-| `AUTH_URL` | `http://localhost:3000` |
-| `NEXT_PUBLIC_APP_URL` | `http://localhost:3000` |
-| `GOOGLE_CLIENT_ID` | from Google Cloud (the same OAuth client allows localhost too) |
-| `GOOGLE_CLIENT_SECRET` | from Google Cloud |
+You already have everything you need — `apps/web/.env` works locally too. Just override the URLs:
 
 ```sh
-cd apps/web && bun run dev      # http://localhost:3000
+cd apps/web
+sed -i '' 's|https://code-arena.*onrender.com|http://localhost:3000|g' .env
+bun run dev    # http://localhost:3000
 ```
 
-Run a match without DB:
+Run a match without a DB:
+
 ```sh
 bun scripts/local-match.ts \
   --bots bots/samples/greedy-bot.js,bots/samples/hunter-bot.js,bots/samples/defensive-bot.js \
@@ -163,45 +185,38 @@ bun scripts/local-match.ts \
 
 ## Day-2 ops
 
-**Deploy a code change** — `git push`. Render auto-deploys.
-
-**Apply a new migration** — schema change in `packages/db/src/schema.ts`, then:
+**Deploy a code change**
 ```sh
-cd packages/db && bun run generate    # writes new SQL under drizzle/
-git add . && git commit && git push
-# then apply against Neon (only the runtime DB needs migrations applied):
-export DATABASE_URL='your Neon URL'
-cd packages/db && bun run migrate
+git push    # Render auto-deploys
 ```
 
-**Insert a custom match** (until the admin UI ships) — Neon SQL Editor:
-```sql
-WITH m AS (
-  INSERT INTO matches (season_id, kind, status, seed)
-  SELECT id, 'custom', 'pending', floor(random()*1000000)::int FROM seasons WHERE is_active LIMIT 1
-  RETURNING id
-)
-INSERT INTO match_participants (match_id, bot_id, bot_version_id)
-SELECT m.id, b.id, b.current_version_id FROM m, bots b WHERE b.is_official LIMIT 10;
+**Apply a new migration**
+```sh
+cd packages/db && bun run generate    # writes new SQL under drizzle/
+git add . && git commit -m "schema: …" && git push
+
+# then apply against Neon:
+set -a && source ../../apps/web/.env && set +a
+bun run migrate
 ```
 
 **Tail logs** — Render dashboard → code-arena → **Logs**.
 
 ---
 
-## Env var reference card
+## Env var reference
 
-| Variable | Where set | Source / value |
+| Variable | Where it lives | What it is |
 |---|---|---|
-| `DATABASE_URL` | Render env, local `.env` | Neon connection string |
-| `AUTH_SECRET` | Render env, local `.env` | `openssl rand -base64 32` |
-| `AUTH_URL` | Render env, local `.env` | Public URL of the app |
-| `NEXT_PUBLIC_APP_URL` | Render env, local `.env` | Same as `AUTH_URL` |
-| `GOOGLE_CLIENT_ID` | Render env, local `.env` | Google Cloud → Credentials |
-| `GOOGLE_CLIENT_SECRET` | Render env, local `.env` | Google Cloud → Credentials |
-| `NODE_ENV` | `render.yaml` (already set) | `production` |
-| `PORT` | `render.yaml` (already set) | `3000` |
-| `DISABLE_BACKGROUND` | optional | `1` to disable scheduler/runner (e.g. CI) |
+| `DATABASE_URL` | `apps/web/.env` + Render env | Neon connection string |
+| `AUTH_SECRET` | `apps/web/.env` + Render env | `openssl rand -base64 32` (Step 2) |
+| `AUTH_URL` | `apps/web/.env` + Render env | Public app URL — Render hostname in prod, `http://localhost:3000` in dev |
+| `NEXT_PUBLIC_APP_URL` | `apps/web/.env` + Render env | Same as `AUTH_URL` |
+| `GOOGLE_CLIENT_ID` | `apps/web/.env` + Render env | Google Cloud → Credentials |
+| `GOOGLE_CLIENT_SECRET` | `apps/web/.env` + Render env | Google Cloud → Credentials |
+| `NODE_ENV` | `render.yaml` (auto) | `production` |
+| `PORT` | `render.yaml` (auto) | `3000` |
+| `DISABLE_BACKGROUND` | optional Render env | `1` to disable scheduler/runner |
 
 ---
 
@@ -209,22 +224,22 @@ SELECT m.id, b.id, b.current_version_id FROM m, bots b WHERE b.is_official LIMIT
 
 | Symptom | Fix |
 |---|---|
-| `redirect_uri_mismatch` from Google | The redirect URI in Google Cloud → Credentials must be character-perfect: `https://code-arena.onrender.com/api/auth/callback/google`. |
-| Sign-in succeeds but redirects to a 404 | `AUTH_URL` doesn't match your real URL. Update on Render and redeploy. |
-| App sleeps despite UptimeRobot | Verify the monitor URL in UptimeRobot returns 200. |
-| Build fails on `nsjail` step | Render's free build minutes can be slow; rerun. nsjail isn't required at runtime — runner falls back to plain subprocess. |
-| `DATABASE_URL not set` in Render logs | You forgot Step 5, or set it via `render.yaml`'s `value:` field instead of the dashboard. Use the dashboard. |
-| Scheduler logs `only N bots — need 20` | Clone more samples, or insert a custom match via SQL above. |
+| `redirect_uri_mismatch` from Google | Google Cloud → Credentials → Code Arena web. The redirect URI must be `https://YOUR-REAL-URL.onrender.com/api/auth/callback/google` — character-perfect. |
+| Sign-in succeeds but lands on 404 | `AUTH_URL` in Render env doesn't match your real URL. Update + redeploy. |
+| App goes to sleep | UptimeRobot dashboard → confirm monitor shows green every 5 min. |
+| Build fails on `nsjail` step | Render's free build minutes can be slow; click **Manual Deploy → Deploy latest commit**. nsjail isn't required at runtime — runner falls back to plain subprocess. |
+| `DATABASE_URL not set` in Render logs | Step 6 didn't take. Re-paste `apps/web/.env` into Render's bulk-add. |
+| Scheduler logs `only N bots — need 20` | Clone more samples, or insert via the SQL in Step 10. |
 
 ---
 
-## Costs & limits at a glance
+## Costs at a glance
 
-| Resource | Free tier | Hits limit when |
+| Resource | Free | Hits limit when |
 |---|---|---|
-| Render free | 512 MB / 0.1 CPU / 750 hr/mo | scheduler + 10 bot subprocesses near OOM. Drop `MATCHES_PER_CYCLE` if needed. |
-| Neon free | 0.5 GB / autosuspend | replays are JSONB ~30 KB/match → ~16k matches before full. |
-| UptimeRobot free | 50 monitors | n/a |
+| Render free | 512 MB / 0.1 CPU / 750 hr | 10 bot subprocesses near OOM. Drop `MATCHES_PER_CYCLE`. |
+| Neon free | 0.5 GB / autosuspend | replays ~30 KB/match → ~16k matches before full. |
+| UptimeRobot | 50 monitors | n/a |
 | Google OAuth | unlimited | n/a |
 
-If you outgrow free: **Render Starter $7/mo** (no sleep, more RAM) requires zero code change.
+Outgrow free → **Render Starter $7/mo** (no sleep, more RAM) — zero code change.
