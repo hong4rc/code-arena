@@ -1,5 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
+
 import { and, bots, eq, getDb } from "@arena/db";
+
 import { requireUser } from "@/lib/auth";
 import { saveBot } from "@/lib/save-bot";
 

@@ -1,6 +1,9 @@
-import { NextResponse, type NextRequest } from "next/server";
 import { createHash } from "node:crypto";
+
+import { NextResponse, type NextRequest } from "next/server";
+
 import { and, bots, botVersions, desc, eq, getDb } from "@arena/db";
+
 import { requireUser } from "@/lib/auth";
 
 export async function POST(_req: NextRequest, ctx: { params: Promise<{ id: string }> }) {

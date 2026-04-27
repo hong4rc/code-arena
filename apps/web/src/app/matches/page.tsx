@@ -1,6 +1,6 @@
-export const dynamic = "force-dynamic";
-
 import { desc, getDb, matches } from "@arena/db";
+
+export const dynamic = "force-dynamic";
 
 export default async function MatchesPage() {
   const db = getDb();

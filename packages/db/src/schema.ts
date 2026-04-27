@@ -13,6 +13,7 @@ import {
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
+
 import { uuidv7 } from "./uuidv7.ts";
 
 export const userRole = pgEnum("user_role", ["user", "admin"]);

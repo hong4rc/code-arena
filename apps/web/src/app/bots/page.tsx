@@ -1,8 +1,11 @@
-export const dynamic = "force-dynamic";
-
+import Link from "next/link";
 import { redirect } from "next/navigation";
+
 import { bots, eq, getDb } from "@arena/db";
+
 import { getCurrentUser } from "@/lib/auth";
+
+export const dynamic = "force-dynamic";
 
 export default async function MyBotsPage() {
   const user = await getCurrentUser();
@@ -14,10 +17,10 @@ export default async function MyBotsPage() {
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <h1>My bots</h1>
-        <a href="/bots/new"><button className="primary">New bot</button></a>
+        <Link href="/bots/new"><button className="primary">New bot</button></Link>
       </div>
       {list.length === 0 ? (
-        <p>No bots yet. <a href="/samples">Clone a sample bot</a> or <a href="/bots/new">start from scratch</a>.</p>
+        <p>No bots yet. <Link href="/samples">Clone a sample bot</Link> or <Link href="/bots/new">start from scratch</Link>.</p>
       ) : (
         <table>
           <thead>
@@ -26,9 +29,9 @@ export default async function MyBotsPage() {
           <tbody>
             {list.map((b) => (
               <tr key={b.id}>
-                <td><a href={`/bots/${b.id}`}>{b.name}</a></td>
+                <td><Link href={`/bots/${b.id}`}>{b.name}</Link></td>
                 <td>{new Date(b.createdAt).toLocaleDateString()}</td>
-                <td><a href={`/bots/${b.id}`}>Edit →</a></td>
+                <td><Link href={`/bots/${b.id}`}>Edit →</Link></td>
               </tr>
             ))}
           </tbody>

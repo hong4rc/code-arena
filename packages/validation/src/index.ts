@@ -1,12 +1,13 @@
-import { parse } from "acorn";
-import { simple as walkSimple } from "acorn-walk";
 import { existsSync, mkdtempSync, rmSync, writeFileSync, copyFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, dirname  } from "node:path";
 import { fileURLToPath } from "node:url";
-import { dirname } from "node:path";
-import { spawnBot, askBot, killBot } from "@arena/runner";
+
+import { parse } from "acorn";
+import { simple as walkSimple } from "acorn-walk";
+
 import { mergeConfig, type Observation } from "@arena/engine";
+import { spawnBot, askBot, killBot } from "@arena/runner";
 
 const MAX_BYTES = 256 * 1024;
 
@@ -41,11 +42,11 @@ export function validateStatic(code: string): ValidationResult {
   let ast;
   try {
     ast = parse(code, { ecmaVersion: 2022, sourceType: "module", locations: true });
-  } catch (err) {
+  } catch (error) {
     issues.push({
       level: "error",
       code: "parse",
-      message: `Parse error: ${(err as Error).message}`,
+      message: `Parse error: ${(error as Error).message}`,
     });
     return { ok: false, issues };
   }
@@ -58,25 +59,25 @@ export function validateStatic(code: string): ValidationResult {
         level: "error",
         code: "no-imports",
         message: `Bots are single-file with no imports. Found: '${src}'. Helpers like adjacent, nearestBot, dirTo are available as globals.`,
-        ...(line !== undefined ? { line } : {}),
+        ...(line === undefined ? {} : { line }),
       });
     },
     CallExpression(node) {
       const callee = (node as unknown as { callee: { type: string; name?: string } }).callee;
       const line = (node as unknown as { loc?: { start: { line: number } } }).loc?.start.line;
       if (callee.type === "Identifier" && (callee.name === "eval" || callee.name === "Function")) {
-        issues.push({ level: "error", code: "forbidden-call", message: `'${callee.name}' is not allowed`, ...(line !== undefined ? { line } : {}) });
+        issues.push({ level: "error", code: "forbidden-call", message: `'${callee.name}' is not allowed`, ...(line === undefined ? {} : { line }) });
       }
     },
     ImportExpression(node) {
       const line = (node as unknown as { loc?: { start: { line: number } } }).loc?.start.line;
-      issues.push({ level: "error", code: "dynamic-import", message: `Dynamic import() is not allowed`, ...(line !== undefined ? { line } : {}) });
+      issues.push({ level: "error", code: "dynamic-import", message: `Dynamic import() is not allowed`, ...(line === undefined ? {} : { line }) });
     },
     NewExpression(node) {
       const callee = (node as unknown as { callee: { type: string; name?: string } }).callee;
       const line = (node as unknown as { loc?: { start: { line: number } } }).loc?.start.line;
       if (callee.type === "Identifier" && callee.name === "Function") {
-        issues.push({ level: "error", code: "forbidden-new", message: `'new Function' is not allowed`, ...(line !== undefined ? { line } : {}) });
+        issues.push({ level: "error", code: "forbidden-new", message: `'new Function' is not allowed`, ...(line === undefined ? {} : { line }) });
       }
     },
     Identifier(node) {

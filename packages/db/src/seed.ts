@@ -4,7 +4,9 @@
 import { createHash } from "node:crypto";
 import { readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
+
 import { eq } from "drizzle-orm";
+
 import { getDb } from "./index.ts";
 import { bots, botVersions, seasons, users } from "./schema.ts";
 

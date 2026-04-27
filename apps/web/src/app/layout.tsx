@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import type { ReactNode } from "react";
 // @ts-expect-error - CSS side-effect import handled by Next.js
 import "./globals.css";
@@ -12,13 +14,13 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html lang="en">
       <body>
         <header style={{ padding: "12px 24px", borderBottom: "1px solid #ddd", display: "flex", gap: 16 }}>
-          <a href="/" style={{ fontWeight: 600 }}>Code Arena</a>
-          <a href="/bots">My bots</a>
-          <a href="/samples">Samples</a>
-          <a href="/matches">Matches</a>
-          <a href="/leaderboard">Leaderboard</a>
+          <Link href="/" style={{ fontWeight: 600 }}>Code Arena</Link>
+          <Link href="/bots">My bots</Link>
+          <Link href="/samples">Samples</Link>
+          <Link href="/matches">Matches</Link>
+          <Link href="/leaderboard">Leaderboard</Link>
           <span style={{ flex: 1 }} />
-          <a href="/login">Sign in</a>
+          <Link href="/login">Sign in</Link>
         </header>
         <main style={{ padding: 24, maxWidth: 1100, margin: "0 auto" }}>{children}</main>
       </body>

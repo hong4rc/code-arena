@@ -1,5 +1,6 @@
-import type { Subprocess } from "bun";
 import type { Action } from "@arena/engine";
+
+import type { Subprocess } from "bun";
 
 export interface BotProcess {
   botId: string;
@@ -28,7 +29,7 @@ export function spawnBot({ botId, scriptPath, harnessPath, cwd, rawCmd }: SpawnO
     stdin: "pipe",
     stdout: "pipe",
     stderr: "pipe",
-    ...(cwd !== undefined ? { cwd } : {}),
+    ...(cwd === undefined ? {} : { cwd }),
   });
 
   const bp: BotProcess = { botId, proc, buffer: "", stderr: "", closed: false };
@@ -81,7 +82,7 @@ export async function askBot(bp: BotProcess, observation: unknown, timeoutMs: nu
   try {
     for (;;) {
       const idx = bp.buffer.indexOf("\n");
-      if (idx >= 0) {
+      if (idx !== -1) {
         line = bp.buffer.slice(0, idx);
         bp.buffer = bp.buffer.slice(idx + 1);
         break;

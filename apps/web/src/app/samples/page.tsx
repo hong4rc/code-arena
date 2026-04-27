@@ -1,6 +1,6 @@
-export const dynamic = "force-dynamic";
-
 import { bots, eq, getDb } from "@arena/db";
+
+export const dynamic = "force-dynamic";
 
 export default async function SamplesPage() {
   const db = getDb();

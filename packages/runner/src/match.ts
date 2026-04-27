@@ -10,6 +10,7 @@ import {
   type ResolvedAction,
   type World,
 } from "@arena/engine";
+
 import { askBot, killBot, spawnBot, type BotProcess, type SpawnOptions } from "./spawn.ts";
 
 export interface BotEntry {
@@ -68,7 +69,7 @@ function snapshot(world: World): TickReplay["worldSnapshot"] {
 
 export async function runMatch(opts: RunMatchOptions): Promise<MatchReplay> {
   const config = mergeConfig(opts.config);
-  const seed = opts.seed ?? Date.now() & 0xffff;
+  const seed = opts.seed ?? Date.now() & 0xFF_FF;
   const world = createWorld({ botIds: opts.bots.map((b) => b.id), config: opts.config ?? {}, seed });
 
   const procs: Map<string, BotProcess> = new Map();
@@ -102,12 +103,11 @@ export async function runMatch(opts: RunMatchOptions): Promise<MatchReplay> {
         observations[bot.id] = obs;
         const bp = procs.get(bot.id);
         if (!bp) continue;
-        tasks.push(
-          (async () => ({
-            botId: bot.id,
-            action: await askBot(bp, obs, config.tickTimeMs),
-          }))(),
-        );
+        const ask = async () => {
+          const action = await askBot(bp, obs, config.tickTimeMs);
+          return { botId: bot.id, action };
+        };
+        tasks.push(ask());
       }
 
       const responses = await Promise.all(tasks);

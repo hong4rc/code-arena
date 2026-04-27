@@ -1,5 +1,6 @@
-import type { NextRequest } from "next/server";
 import { auth } from "@/lib/auth-server";
+
+import type { NextRequest } from "next/server";
 
 export const dynamic = "force-dynamic";
 

@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+
 import { INITIAL_RATING, updateGlicko, updateMatchRatings } from "../src/index.ts";
 
 describe("updateGlicko", () => {

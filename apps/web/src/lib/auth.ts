@@ -1,5 +1,7 @@
 import { headers } from "next/headers";
+
 import { eq, getDb, users } from "@arena/db";
+
 import { auth } from "./auth-server.ts";
 
 /** Returns the application user row for the current request, or null. */

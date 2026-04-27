@@ -1,5 +1,6 @@
-import type { Bot, GameConfig, Observation, ObservedCell, World } from "./types.ts";
 import { botAt, inBounds, itemAt } from "./world.ts";
+
+import type { Bot, GameConfig, Observation, ObservedCell, World } from "./types.ts";
 
 export function buildObservation(world: World, bot: Bot, config: GameConfig): Observation {
   const r = config.visionRadius;

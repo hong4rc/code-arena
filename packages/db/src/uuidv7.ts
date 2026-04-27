@@ -13,17 +13,17 @@ export function uuidv7(): string {
 
   const bytes = new Uint8Array(16);
   // 48-bit timestamp
-  bytes[0] = Number((ms >> 40n) & 0xffn);
-  bytes[1] = Number((ms >> 32n) & 0xffn);
-  bytes[2] = Number((ms >> 24n) & 0xffn);
-  bytes[3] = Number((ms >> 16n) & 0xffn);
-  bytes[4] = Number((ms >> 8n) & 0xffn);
-  bytes[5] = Number(ms & 0xffn);
+  bytes[0] = Number((ms >> 40n) & 0xFFn);
+  bytes[1] = Number((ms >> 32n) & 0xFFn);
+  bytes[2] = Number((ms >> 24n) & 0xFFn);
+  bytes[3] = Number((ms >> 16n) & 0xFFn);
+  bytes[4] = Number((ms >> 8n) & 0xFFn);
+  bytes[5] = Number(ms & 0xFFn);
   // 16 bits: 4-bit version (7) + 12 random
-  bytes[6] = (0x70 | (rnd[0]! & 0x0f)) & 0xff;
+  bytes[6] = (0x70 | (rnd[0]! & 0x0F)) & 0xFF;
   bytes[7] = rnd[1]!;
   // 64 bits: 2-bit variant (10) + 62 random
-  bytes[8] = (0x80 | (rnd[2]! & 0x3f)) & 0xff;
+  bytes[8] = (0x80 | (rnd[2]! & 0x3F)) & 0xFF;
   bytes[9] = rnd[3]!;
   bytes[10] = rnd[4]!;
   bytes[11] = rnd[5]!;

@@ -22,7 +22,7 @@ export function updateMatchRatings(participants: Participant[]): Map<string, Gli
       .filter((p) => p.botId !== me.botId)
       .map((p) => ({
         opponent: p.rating,
-        score: me.placement < p.placement ? 1 : me.placement > p.placement ? 0 : 0.5,
+        score: me.placement < p.placement ? 1 : (me.placement > p.placement ? 0 : 0.5),
       }));
     next.set(me.botId, updateGlicko(me.rating, results));
   }

@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+
 import { bots, botVersions, eq, getDb } from "@arena/db";
 import { validateBot } from "@arena/validation";
 
@@ -21,14 +22,14 @@ export async function saveBot(input: SaveBotInput): Promise<SaveBotResult> {
 
   const db = getDb();
   let botId = input.botId;
-  if (!botId) {
+  if (botId) {
+    await db.update(bots).set({ name: input.name }).where(eq(bots.id, botId));
+  } else {
     const [created] = await db
       .insert(bots)
       .values({ ownerId: input.ownerId, name: input.name })
       .returning();
     botId = created!.id;
-  } else {
-    await db.update(bots).set({ name: input.name }).where(eq(bots.id, botId));
   }
 
   const sha = createHash("sha256").update(input.code).digest("hex");

@@ -5,11 +5,13 @@
 //        in-process matchmaking scheduler + match runner pump.
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { parse } from "node:url";
+
 import next from "next";
 import { WebSocketServer } from "ws";
-import { handleMatchWs } from "./src/server/ws-handler.ts";
-import { startScheduler } from "./src/server/scheduler.ts";
+
 import { pickPendingMatches, runOneMatch } from "./src/server/run-match.ts";
+import { startScheduler } from "./src/server/scheduler.ts";
+import { handleMatchWs } from "./src/server/ws-handler.ts";
 
 const port = Number(process.env.PORT ?? 3000);
 const dev = process.env.NODE_ENV !== "production";
@@ -20,8 +22,8 @@ await app.prepare();
 
 const server = createServer((req: IncomingMessage, res: ServerResponse) => {
   const parsed = parse(req.url ?? "", true);
-  void handle(req, res, parsed).catch((err: unknown) => {
-    console.error("request error:", err);
+  void handle(req, res, parsed).catch((error: unknown) => {
+    console.error("request error:", error);
     res.statusCode = 500;
     res.end("internal error");
   });
@@ -41,8 +43,8 @@ server.on("upgrade", (req, socket, head) => {
     wss.handleUpgrade(req, socket, head, (ws) => {
       void handleMatchWs(ws, req, matchId);
     });
-  } catch (err) {
-    console.error("upgrade error:", err);
+  } catch (error) {
+    console.error("upgrade error:", error);
     socket.destroy();
   }
 });
@@ -58,8 +60,8 @@ if (process.env.DISABLE_BACKGROUND !== "1") {
       try {
         const pending = await pickPendingMatches(1);
         for (const id of pending) await runOneMatch(id);
-      } catch (err) {
-        console.error("[runner pump]", err);
+      } catch (error) {
+        console.error("[runner pump]", error);
       }
     })();
   }, 2000);

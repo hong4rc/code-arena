@@ -1,3 +1,6 @@
+import { rngInt, rngNext } from "./rng.ts";
+import { botAt, inBounds, itemAt } from "./world.ts";
+
 import type {
   Action,
   ActionFailureReason,
@@ -9,8 +12,6 @@ import type {
   ResolvedAction,
   World,
 } from "./types.ts";
-import { botAt, inBounds, itemAt } from "./world.ts";
-import { rngInt, rngNext } from "./rng.ts";
 
 export interface BotInput {
   botId: string;
@@ -94,17 +95,26 @@ export function resolveTick(world: World, inputs: BotInput[], config: GameConfig
       resolved.push({ botId: bot.id, attempted: inp.action, applied: { type: "WAIT" }, reason: "item-not-in-inventory" });
       continue;
     }
-    bot.inventory.splice(idx, 1);
-    if (item === "HEAL") bot.hp = Math.min(bot.maxHp, bot.hp + config.items.heal.hp);
-    else if (item === "SHIELD") bot.shieldHp = Math.max(bot.shieldHp, config.items.shield.absorbHp);
-    else if (item === "SPEED_BOOST") {
-      bot.speed += config.items.speedBoost.speedBonus;
-      bot.speedBoostTicks = config.items.speedBoost.ticks;
-    } else if (item === "WEAPON") {
-      // WEAPON is passive while in inventory; using it does nothing (treat as WAIT).
-      bot.inventory.push(item); // restore
+    // WEAPON is passive while held; "using" it is illegal — short-circuit before mutating inventory.
+    if (item === "WEAPON") {
       resolved.push({ botId: bot.id, attempted: inp.action, applied: { type: "WAIT" }, reason: "item-not-in-inventory" });
       continue;
+    }
+    bot.inventory.splice(idx, 1);
+    switch (item) {
+      case "HEAL": {
+        bot.hp = Math.min(bot.maxHp, bot.hp + config.items.heal.hp);
+        break;
+      }
+      case "SHIELD": {
+        bot.shieldHp = Math.max(bot.shieldHp, config.items.shield.absorbHp);
+        break;
+      }
+      case "SPEED_BOOST": {
+        bot.speed += config.items.speedBoost.speedBonus;
+        bot.speedBoostTicks = config.items.speedBoost.ticks;
+        break;
+      }
     }
     resolved.push({ botId: bot.id, attempted: inp.action, applied: inp.action });
   }
@@ -151,12 +161,12 @@ export function resolveTick(world: World, inputs: BotInput[], config: GameConfig
 
   // Apply successful moves.
   for (const m of moves) {
-    if (!m.fail) {
+    if (m.fail) {
+      resolved.push({ botId: m.bot.id, attempted: m.action, applied: { type: "WAIT" }, reason: m.fail });
+    } else {
       m.bot.pos = m.to;
       occupiedAfter.set(`${m.to.x},${m.to.y}`, m.bot);
       resolved.push({ botId: m.bot.id, attempted: m.action, applied: m.action });
-    } else {
-      resolved.push({ botId: m.bot.id, attempted: m.action, applied: { type: "WAIT" }, reason: m.fail });
     }
   }
 

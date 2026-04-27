@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+
 import {
   buildObservation,
   createWorld,
@@ -7,6 +8,7 @@ import {
   placements,
   resolveTick,
 } from "../src/index.ts";
+
 import type { Bot, BotInput, GameConfig, World } from "../src/index.ts";
 
 const cfg: GameConfig = mergeConfig({ width: 10, height: 10, maxTicks: 10 });

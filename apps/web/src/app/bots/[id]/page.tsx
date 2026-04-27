@@ -1,9 +1,11 @@
-export const dynamic = "force-dynamic";
-
 import { notFound, redirect } from "next/navigation";
+
 import { and, bots, botVersions, desc, eq, getDb } from "@arena/db";
-import { getCurrentUser } from "@/lib/auth";
+
 import { BotEditor } from "@/components/BotEditor";
+import { getCurrentUser } from "@/lib/auth";
+
+export const dynamic = "force-dynamic";
 
 export default async function EditBotPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;

@@ -1,6 +1,8 @@
-export const dynamic = "force-dynamic";
+import Link from "next/link";
 
 import { getCurrentUser } from "@/lib/auth";
+
+export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
   const user = await getCurrentUser();
@@ -9,9 +11,9 @@ export default async function HomePage() {
       <h1>Code Arena</h1>
       <p>Submit a JavaScript bot. Every 5 minutes the server runs 3 matches with 10 bots each. Climb the ladder.</p>
       {user ? (
-        <p>Signed in as <b>{user.name ?? user.email}</b>. <a href="/bots">Go to my bots →</a></p>
+        <p>Signed in as <b>{user.name ?? user.email}</b>. <Link href="/bots">Go to my bots →</Link></p>
       ) : (
-        <p><a href="/login">Sign in with Google</a> to submit a bot.</p>
+        <p><Link href="/login">Sign in with Google</Link> to submit a bot.</p>
       )}
       <div style={{ marginTop: 32 }}>
         <h2>How it works</h2>

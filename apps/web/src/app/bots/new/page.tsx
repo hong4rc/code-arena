@@ -1,10 +1,12 @@
-export const dynamic = "force-dynamic";
-
-import { redirect } from "next/navigation";
-import { getCurrentUser } from "@/lib/auth";
-import { BotEditor } from "@/components/BotEditor";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+
+import { redirect } from "next/navigation";
+
+import { BotEditor } from "@/components/BotEditor";
+import { getCurrentUser } from "@/lib/auth";
+
+export const dynamic = "force-dynamic";
 
 const TEMPLATE_PATH = join(process.cwd(), "..", "..", "bots", "samples", "bot-template.js");
 

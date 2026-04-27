@@ -1,4 +1,5 @@
 import { existsSync } from "node:fs";
+
 import { spawnBot, type BotProcess, type SpawnOptions } from "./spawn.ts";
 
 /**

@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+
 import { validateStatic, smokeRun } from "../src/index.ts";
 
 const GOOD = `

@@ -41,7 +41,7 @@ export function updateGlicko(player: Glicko, results: MatchResult[]): Glicko {
 
   if (results.length === 0) {
     // No games this period — RD increases.
-    const newPhi = Math.sqrt(phi * phi + sigma * sigma);
+    const newPhi = Math.hypot(phi, sigma);
     return { rating: player.rating, rd: newPhi * SCALE, vol: sigma };
   }
 
@@ -102,7 +102,7 @@ export function updateGlicko(player: Glicko, results: MatchResult[]): Glicko {
   const newSigma = Math.exp(A / 2);
 
   // 5. Pre-rating-period RD.
-  const phiStar = Math.sqrt(phi * phi + newSigma * newSigma);
+  const phiStar = Math.hypot(phi, newSigma);
 
   // 6. New phi and mu.
   const newPhi = 1 / Math.sqrt(1 / (phiStar * phiStar) + 1 / v);

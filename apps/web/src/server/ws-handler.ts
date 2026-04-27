@@ -1,7 +1,10 @@
-import type { WebSocket } from "ws";
-import type { IncomingMessage } from "node:http";
-import { subscribe } from "./broadcaster.ts";
 import { eq, getDb, matchReplays, matches } from "@arena/db";
+
+import { subscribe } from "./broadcaster.ts";
+
+import type { IncomingMessage } from "node:http";
+import type { WebSocket } from "ws";
+
 
 /**
  * Handle a WebSocket upgrade for /api/ws/match/:id.

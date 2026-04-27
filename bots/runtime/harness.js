@@ -7,9 +7,9 @@
 // Bot authors do NOT touch this file. Their bot is a single file that
 // default-exports a `decide` function. Helpers (adjacent, nearestBot,
 // nearestItem, dirTo, …) are exposed as globals so user code stays simple.
+import { resolve } from "node:path";
 import { createInterface } from "node:readline";
 import { pathToFileURL } from "node:url";
-import { resolve } from "node:path";
 
 // ────────────────────── helpers exposed as globals ──────────────────────
 
@@ -254,7 +254,7 @@ globalThis.scanLine = function scanLine(obs, dir, range) {
 globalThis.turn = function turn(dir, n = 1) {
   const order = ["UP", "RIGHT", "DOWN", "LEFT"];
   const i = order.indexOf(dir);
-  if (i < 0) return dir;
+  if (i === -1) return dir;
   return order[((i + n) % 4 + 4) % 4];
 };
 

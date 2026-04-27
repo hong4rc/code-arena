@@ -1,7 +1,7 @@
-import { mkdtempSync, rmSync, writeFileSync, copyFileSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync, copyFileSync, existsSync  } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { existsSync } from "node:fs";
+
 import {
   botVersions,
   desc,
@@ -12,8 +12,9 @@ import {
   matchReplays,
   ratings,
 } from "@arena/db";
-import { runMatch, spawnSandboxedBot, type BotEntry } from "@arena/runner";
 import { INITIAL_RATING, updateMatchRatings } from "@arena/rating";
+import { runMatch, spawnSandboxedBot, type BotEntry } from "@arena/runner";
+
 import { publishTick, endChannel } from "./broadcaster.ts";
 
 const HARNESS_PATHS = [
@@ -106,7 +107,7 @@ export async function runOneMatch(matchId: string): Promise<void> {
 
     // Update participants with placement / final HP.
     const finalById = new Map(replay.finalPlacements.map((p) => [p.botId, p.placement]));
-    const lastSnap = replay.ticks[replay.ticks.length - 1]?.worldSnapshot.bots ?? [];
+    const lastSnap = replay.ticks.at(-1)?.worldSnapshot.bots ?? [];
     const hpById = new Map(lastSnap.map((b) => [b.id, b.hp]));
     for (const p of prepared) {
       await db.update(matchParticipants).set({
@@ -159,8 +160,8 @@ export async function runOneMatch(matchId: string): Promise<void> {
       .update(matches)
       .set({ status: "done", finishedAt: new Date() })
       .where(eq(matches.id, matchId));
-  } catch (err) {
-    console.error(`match ${matchId} failed:`, err);
+  } catch (error) {
+    console.error(`match ${matchId} failed:`, error);
     await db
       .update(matches)
       .set({ status: "failed", finishedAt: new Date() })

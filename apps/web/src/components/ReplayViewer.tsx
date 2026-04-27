@@ -25,9 +25,9 @@ export function ReplayViewer({ matchId, initialTicks, live }: Props) {
     if (!live) return;
     const proto = window.location.protocol === "https:" ? "wss" : "ws";
     const ws = new WebSocket(`${proto}://${window.location.host}/api/ws/match/${matchId}`);
-    ws.onmessage = (ev) => {
+    const onMessage = (ev: MessageEvent) => {
       try {
-        const msg = JSON.parse(ev.data) as TickReplay;
+        const msg = JSON.parse(ev.data as string) as TickReplay;
         setTicks((prev) => {
           const next = [...prev, msg];
           setIdx(next.length - 1);
@@ -35,7 +35,11 @@ export function ReplayViewer({ matchId, initialTicks, live }: Props) {
         });
       } catch { /* ignore */ }
     };
-    return () => ws.close();
+    ws.addEventListener("message", onMessage);
+    return () => {
+      ws.removeEventListener("message", onMessage);
+      ws.close();
+    };
   }, [live, matchId]);
 
   const current = ticks[idx];
@@ -66,8 +70,9 @@ export function ReplayViewer({ matchId, initialTicks, live }: Props) {
     for (let y = 0; y <= bounds.h; y++) {
       ctx.beginPath(); ctx.moveTo(0, y * CELL); ctx.lineTo(bounds.w * CELL, y * CELL); ctx.stroke();
     }
+    const itemColor: Record<string, string> = { HEAL: "#2c2", WEAPON: "#c22", SHIELD: "#2af", SPEED_BOOST: "#fa0" };
     for (const it of current.worldSnapshot.items) {
-      ctx.fillStyle = it.kind === "HEAL" ? "#2c2" : it.kind === "WEAPON" ? "#c22" : it.kind === "SHIELD" ? "#2af" : "#fa0";
+      ctx.fillStyle = itemColor[it.kind] ?? "#888";
       ctx.fillRect(it.x * CELL + 6, it.y * CELL + 6, CELL - 12, CELL - 12);
     }
     for (const b of current.worldSnapshot.bots) {

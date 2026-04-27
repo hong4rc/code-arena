@@ -1,6 +1,7 @@
-import type { Bot, Cell, GameConfig, ItemKind, World } from "./types.ts";
-import { DEFAULT_CONFIG } from "./types.ts";
 import { rngInt } from "./rng.ts";
+import { DEFAULT_CONFIG } from "./types.ts";
+
+import type { Bot, Cell, GameConfig, ItemKind, World } from "./types.ts";
 
 export interface CreateWorldOptions {
   botIds: string[];

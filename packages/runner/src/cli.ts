@@ -1,7 +1,8 @@
 #!/usr/bin/env bun
 /* eslint-disable no-console */
-import { resolve } from "node:path";
 import { writeFileSync } from "node:fs";
+import { resolve } from "node:path";
+
 import { runMatch } from "./match.ts";
 
 interface Args {
@@ -18,12 +19,14 @@ function parseArgs(argv: string[]): Args {
   const next = (i: number) => argv[i] ?? "";
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
-    if (a === "--bots") out.bots = next(++i).split(",").filter(Boolean);
-    else if (a === "--out") out.out = next(++i);
-    else if (a === "--seed") out.seed = Number(next(++i));
-    else if (a === "--ticks") out.ticks = Number(next(++i));
-    else if (a === "--width") out.width = Number(next(++i));
-    else if (a === "--height") out.height = Number(next(++i));
+    switch (a) {
+      case "--bots": { out.bots = next(++i).split(",").filter(Boolean); break; }
+      case "--out": { out.out = next(++i); break; }
+      case "--seed": { out.seed = Number(next(++i)); break; }
+      case "--ticks": { out.ticks = Number(next(++i)); break; }
+      case "--width": { out.width = Number(next(++i)); break; }
+      case "--height": { out.height = Number(next(++i)); break; }
+    }
   }
   return out;
 }
@@ -52,7 +55,7 @@ const startedAt = performance.now();
 const replay = await runMatch({
   bots,
   config,
-  ...(args.seed !== undefined ? { seed: args.seed } : {}),
+  ...(args.seed === undefined ? {} : { seed: args.seed }),
   onTick: (t) => {
     const summary = t.worldSnapshot.bots
       .filter((b) => b.alive)

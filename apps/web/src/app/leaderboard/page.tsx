@@ -1,6 +1,6 @@
-export const dynamic = "force-dynamic";
-
 import { and, bots, desc, eq, getDb, ratings, seasons } from "@arena/db";
+
+export const dynamic = "force-dynamic";
 
 export default async function LeaderboardPage() {
   const db = getDb();

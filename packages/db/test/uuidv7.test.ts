@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+
 import { uuidv7 } from "../src/uuidv7.ts";
 
 describe("uuidv7", () => {

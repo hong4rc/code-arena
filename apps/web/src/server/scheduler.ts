@@ -52,7 +52,7 @@ async function candidatePool(seasonId: string): Promise<{ botId: string; rating:
   const queueIds = new Set(queueRows.map((r) => r.botId));
 
   // Ratings (default 1500).
-  const ratingRows = activeIds.length
+  const ratingRows = activeIds.length > 0
     ? await db.select().from(ratings).where(and(eq(ratings.seasonId, seasonId), inArray(ratings.botId, activeIds)))
     : [];
   const ratingMap = new Map(ratingRows.map((r) => [r.botId, r.rating]));
@@ -90,7 +90,7 @@ export async function runMatchmakingCycle(): Promise<number> {
     if (picked.length < MATCH_SIZE) break;
     pool = pool.filter((p) => !picked.includes(p.botId));
 
-    const seed = Math.floor(Math.random() * 0x7fffffff);
+    const seed = Math.floor(Math.random() * 0x7F_FF_FF_FF);
     const [match] = await db
       .insert(matches)
       .values({ seasonId: season.id, kind: "auto", status: "pending", seed })
@@ -110,7 +110,7 @@ export async function runMatchmakingCycle(): Promise<number> {
       });
     }
     // Drain these bots from queue.
-    if (picked.length) {
+    if (picked.length > 0) {
       await db.delete(matchQueue).where(inArray(matchQueue.botId, picked));
     }
     created += 1;
@@ -126,10 +126,10 @@ export function startScheduler(): void {
   console.log("[scheduler] starting (cycle = 5min)");
   // First cycle after 30s, then every 5 min.
   setTimeout(() => {
-    void runMatchmakingCycle().catch((e) => console.error("[scheduler]", e));
-  }, 30_000);
+    void runMatchmakingCycle().catch((error) => console.error("[scheduler]", error));
+  }, 30000);
   timer = setInterval(() => {
-    void runMatchmakingCycle().catch((e) => console.error("[scheduler]", e));
+    void runMatchmakingCycle().catch((error) => console.error("[scheduler]", error));
   }, CYCLE_MS);
 }
 
