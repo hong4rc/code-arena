@@ -12,7 +12,9 @@ function build() {
   return betterAuth({
     baseURL: baseUrl,
     secret: process.env.AUTH_SECRET ?? "dev-only-not-for-production",
-    database: drizzleAdapter(getDb(), { provider: "pg" }),
+    // Our Drizzle schema uses plural table names (users/sessions/accounts/
+    // verifications); Better Auth defaults to singular. Tell it otherwise.
+    database: drizzleAdapter(getDb(), { provider: "pg", usePlural: true }),
     advanced: { database: { generateId: uuidv7 } },
     socialProviders: {
       google: {
