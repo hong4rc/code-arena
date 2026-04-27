@@ -1,10 +1,18 @@
+import { fileURLToPath } from "node:url";
+import { dirname, resolve } from "node:path";
+
+const here = dirname(fileURLToPath(import.meta.url));
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: "standalone",
+  // Pin the workspace root to OUR repo root, not whatever Next infers from
+  // stray package-lock.json files higher up in the parent dirs.
+  outputFileTracingRoot: resolve(here, "../.."),
   serverExternalPackages: ["postgres", "@arena/db", "@arena/adapters"],
   transpilePackages: ["@arena/application", "@arena/domain"],
   reactStrictMode: true,
-  eslint: { ignoreDuringBuilds: true }, // we lint separately at the workspace root
+  eslint: { ignoreDuringBuilds: true },
   typescript: { ignoreBuildErrors: false },
 };
 
