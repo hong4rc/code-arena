@@ -3,8 +3,9 @@
 # Includes nsjail for sandboxing user bot subprocesses.
 FROM oven/bun:1.1-debian AS base
 
-# Build nsjail from source (Debian package isn't always available).
-FROM debian:12-slim AS nsjail-builder
+# Build nsjail from source. Use Bullseye to match the Bun runtime base
+# (oven/bun:1.1-debian = Debian 11) so libprotobuf links cleanly across stages.
+FROM debian:11-slim AS nsjail-builder
 RUN apt-get update && apt-get install -y --no-install-recommends \
     autoconf bison flex gcc g++ git libprotobuf-dev libnl-route-3-dev \
     libtool make pkg-config protobuf-compiler ca-certificates \
@@ -42,8 +43,9 @@ FROM oven/bun:1.1-debian AS runtime
 WORKDIR /app
 
 # nsjail runtime deps + a Node binary for bot subprocesses.
+# Bullseye package names: libprotobuf23 (vs libprotobuf32 on Bookworm).
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libprotobuf32 libnl-route-3-200 nodejs ca-certificates tini \
+    libprotobuf23 libnl-route-3-200 nodejs ca-certificates tini \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy nsjail.
