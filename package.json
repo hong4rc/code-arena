@@ -8,7 +8,15 @@
     "test": "bun test",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint .",
-    "lint:fix": "eslint . --fix"
+    "lint:fix": "eslint . --fix",
+    "db:generate": "bun --cwd packages/db run generate",
+    "db:migrate": "bun --cwd packages/db run migrate",
+    "db:seed": "bun --cwd packages/db run seed",
+    "db:setup": "bun run db:migrate && bun run db:seed",
+    "db:studio": "bun --cwd packages/db run studio",
+    "match": "bun scripts/local-match.ts",
+    "dev": "bun --cwd apps/web run dev",
+    "build": "bun --cwd apps/web run build"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
