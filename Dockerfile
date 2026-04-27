@@ -34,8 +34,11 @@ COPY packages ./packages
 COPY apps ./apps
 COPY bots ./bots
 
-# Build Next.js (standalone output).
+# Build Next.js (standalone output). Cap the V8 heap so Next's build worker
+# doesn't get OOM-killed on small build hosts (Render free = 512 MB total).
 WORKDIR /app/apps/web
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV NODE_OPTIONS="--max-old-space-size=400"
 RUN bun run build
 
 # --- Runtime stage ---
