@@ -17,6 +17,23 @@ export function BotEditor({ botId, initialName, initialCode }: Props) {
   const [issues, setIssues] = useState<{ level: string; code: string; message: string }[]>([]);
   const [savedId, setSavedId] = useState<string | null>(botId ?? null);
 
+  async function remove() {
+    if (!savedId) return;
+    if (!globalThis.confirm(`Delete bot "${name}"? Past matches stay but this bot is gone.`)) return;
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/bots/${savedId}`, { method: "DELETE" });
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        globalThis.alert(`Delete failed: ${json.error ?? res.status}`);
+        return;
+      }
+      window.location.href = "/bots";
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function save() {
     setBusy(true);
     setIssues([]);
@@ -44,6 +61,11 @@ export function BotEditor({ botId, initialName, initialCode }: Props) {
       <div style={{ marginBottom: 12, display: "flex", gap: 8, alignItems: "center" }}>
         <input value={name} onChange={(e) => setName(e.target.value)} placeholder="bot name" />
         <button className="primary" onClick={save} disabled={busy}>{busy ? "Saving…" : "Save"}</button>
+        {savedId ? (
+          <button className="danger" onClick={remove} disabled={busy} style={{ minWidth: 110 }}>
+            {busy ? "Deleting…" : "Delete bot"}
+          </button>
+        ) : null}
       </div>
       <div style={{ height: 480, border: "1px solid #ddd", borderRadius: 6 }}>
         <Monaco

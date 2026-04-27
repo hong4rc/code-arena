@@ -15,6 +15,10 @@ const SAMPLES = [
   { name: "greedy-bot", file: "bots/samples/greedy-bot.js", description: "Heads for the nearest item, attacks adjacent enemies." },
   { name: "defensive-bot", file: "bots/samples/defensive-bot.js", description: "Heals at low HP, flees from enemies, grabs items if safe." },
   { name: "hunter-bot", file: "bots/samples/hunter-bot.js", description: "Stalks the lowest-HP visible enemy." },
+  { name: "survivor-bot", file: "bots/samples/survivor-bot.js", description: "Adapts to game phase — early loot, late combat." },
+  { name: "zone-bot", file: "bots/samples/zone-bot.js", description: "Zone-runner — always heads for the safest cell. Avoids fights." },
+  { name: "god-bot", file: "bots/samples/god-bot.js", description: "Best-of-class baseline — leads bullet shots, dodges, kites, full loot economy." },
+  { name: "nn-bot", file: "bots/samples/nn-bot.js", description: "Neural-network brain (40→32→24→15). Self-evolves weights via (1+1)-ES across matches." },
 ];
 
 function findRepoRoot(start: string): string {

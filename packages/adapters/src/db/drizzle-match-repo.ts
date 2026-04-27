@@ -36,7 +36,18 @@ export class DrizzleMatchRepo implements MatchRepo {
     return rows.map((r) => this.toMatch(r));
   }
 
-  async create(input: { seasonId: string; kind: MatchKind; seed: number }): Promise<Match> {
+  async recentByBot(botId: string, limit: number) {
+    const rows = await this.db
+      .select({ match: matches, placement: matchParticipants.placement, ratingDelta: matchParticipants.ratingDelta })
+      .from(matchParticipants)
+      .innerJoin(matches, eq(matches.id, matchParticipants.matchId))
+      .where(eq(matchParticipants.botId, botId))
+      .orderBy(desc(matches.createdAt))
+      .limit(limit);
+    return rows.map((r) => ({ ...this.toMatch(r.match), placement: r.placement, ratingDelta: r.ratingDelta }));
+  }
+
+  async create(input: { seasonId: string | null; kind: MatchKind; seed: number }): Promise<Match> {
     const [row] = await this.db.insert(matches).values({
       seasonId: input.seasonId,
       kind: input.kind,
@@ -76,10 +87,12 @@ export class DrizzleMatchRepo implements MatchRepo {
     }));
   }
 
-  async setParticipantOutcome(input: { matchId: string; botId: string; placement: number; finalHp: number; ratingDelta?: number }): Promise<void> {
+  async setParticipantOutcome(input: { matchId: string; botId: string; placement: number; finalHp: number; damageDealt?: number; itemsPicked?: number; ratingDelta?: number }): Promise<void> {
     await this.db.update(matchParticipants).set({
       placement: input.placement,
       finalHp: input.finalHp,
+      ...(input.damageDealt === undefined ? {} : { damageDealt: input.damageDealt }),
+      ...(input.itemsPicked === undefined ? {} : { itemsPicked: input.itemsPicked }),
       ...(input.ratingDelta === undefined ? {} : { ratingDelta: input.ratingDelta }),
     }).where(and(eq(matchParticipants.matchId, input.matchId), eq(matchParticipants.botId, input.botId)));
   }
@@ -91,6 +104,16 @@ export class DrizzleMatchRepo implements MatchRepo {
   async loadReplay(matchId: string): Promise<TickReplay[] | null> {
     const [row] = await this.db.select().from(matchReplays).where(eq(matchReplays.matchId, matchId)).limit(1);
     return row ? (row.ticks as TickReplay[]) : null;
+  }
+
+  async deleteById(id: string): Promise<void> {
+    // matches → match_participants and match_replays cascade on delete.
+    await this.db.delete(matches).where(eq(matches.id, id));
+  }
+
+  async deleteAll(): Promise<number> {
+    const removed = await this.db.delete(matches).returning({ id: matches.id });
+    return removed.length;
   }
 
   private toMatch(row: typeof matches.$inferSelect): Match {

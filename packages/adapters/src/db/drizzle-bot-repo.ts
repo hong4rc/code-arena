@@ -1,5 +1,5 @@
 import type { Bot, BotRepo, BotVersion } from "@arena/application";
-import { and, bots, botVersions, desc, eq, getDb, type Db } from "@arena/db";
+import { and, bots, botVersions, desc, eq, getDb, matchParticipants, type Db } from "@arena/db";
 
 
 export class DrizzleBotRepo implements BotRepo {
@@ -29,8 +29,10 @@ export class DrizzleBotRepo implements BotRepo {
   }
 
   async findActive(): Promise<Bot[]> {
-    // Non-official bots with a current runnable version.
-    const rows = await this.db.select().from(bots).where(eq(bots.isOfficial, false));
+    // ANY bot (official or user-owned) with a current runnable version.
+    // Including official samples means the system has something to play
+    // with from a fresh seed before any users have signed up.
+    const rows = await this.db.select().from(bots);
     return rows.filter((r) => r.currentVersionId !== null).map((r) => this.toBot(r));
   }
 
@@ -82,6 +84,23 @@ export class DrizzleBotRepo implements BotRepo {
     return row ? this.toVersion(row) : null;
   }
 
+  async findTrainingTargets(): Promise<Bot[]> {
+    const rows = await this.db.select().from(bots).where(eq(bots.isTrainingTarget, true));
+    return rows.filter((r) => r.currentVersionId !== null).map((r) => this.toBot(r));
+  }
+
+  async setTrainingTarget(id: string, on: boolean): Promise<void> {
+    await this.db.update(bots).set({ isTrainingTarget: on }).where(eq(bots.id, id));
+  }
+
+  async delete(id: string): Promise<void> {
+    // match_participants references bots.id without ON DELETE CASCADE.
+    // Clear those rows first, then delete the bot — that cascades to:
+    //   bot_versions, ratings, match_queue (all defined with ON DELETE CASCADE).
+    await this.db.delete(matchParticipants).where(eq(matchParticipants.botId, id));
+    await this.db.delete(bots).where(eq(bots.id, id));
+  }
+
   private toBot(row: typeof bots.$inferSelect): Bot {
     return {
       id: row.id,
@@ -90,6 +109,7 @@ export class DrizzleBotRepo implements BotRepo {
       description: row.description,
       isPublic: row.isPublic,
       isOfficial: row.isOfficial,
+      isTrainingTarget: row.isTrainingTarget,
       clonedFromBotId: row.clonedFromBotId,
       currentVersionId: row.currentVersionId,
       createdAt: row.createdAt,

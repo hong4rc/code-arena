@@ -1,6 +1,11 @@
 import Link from "next/link";
 
+
+import { SignOutButton } from "@/components/SignOutButton";
+import { getCurrentUser } from "@/lib/auth";
+
 import type { ReactNode } from "react";
+
 // @ts-expect-error - CSS side-effect import handled by Next.js
 import "./globals.css";
 
@@ -9,20 +14,42 @@ export const metadata = {
   description: "Submit JS bots, watch them battle.",
 };
 
-export default function RootLayout({ children }: { children: ReactNode }) {
+export default async function RootLayout({ children }: { children: ReactNode }) {
+  const user = await getCurrentUser();
   return (
-    <html lang="en">
-      <body>
-        <header style={{ padding: "12px 24px", borderBottom: "1px solid #ddd", display: "flex", gap: 16 }}>
-          <Link href="/" style={{ fontWeight: 600 }}>Code Arena</Link>
+    <html lang="en" suppressHydrationWarning>
+      <body suppressHydrationWarning>
+        <header className="app-header">
+          <Link href="/" className="brand">⚔ Code Arena</Link>
           <Link href="/bots">My bots</Link>
           <Link href="/samples">Samples</Link>
           <Link href="/matches">Matches</Link>
           <Link href="/leaderboard">Leaderboard</Link>
-          <span style={{ flex: 1 }} />
-          <Link href="/login">Sign in</Link>
+          {user?.role === "admin" && (
+            <span className="admin-nav">
+              <Link href="/admin/training">Training</Link>
+              <Link href="/admin/data">Data</Link>
+            </span>
+          )}
+          <span className="spacer" />
+          {user ? (
+            <>
+              {user.role === "admin" && (
+                <span className="user-pill" style={{ background: "rgba(231, 130, 132, 0.15)", color: "var(--red, #e78284)", borderColor: "var(--red, #e78284)" }}>
+                  admin
+                </span>
+              )}
+              <span className="user-pill">
+                <span style={{ color: "var(--green)" }}>●</span>
+                {user.name ?? user.email}
+              </span>
+              <SignOutButton />
+            </>
+          ) : (
+            <Link href="/login" className="btn primary">Sign in</Link>
+          )}
         </header>
-        <main style={{ padding: 24, maxWidth: 1100, margin: "0 auto" }}>{children}</main>
+        <main>{children}</main>
       </body>
     </html>
   );

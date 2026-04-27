@@ -4,6 +4,8 @@ import { redirect } from "next/navigation";
 import { composition } from "@/composition";
 import { getCurrentUser } from "@/lib/auth";
 
+import { DeleteBotButton } from "./delete-button.tsx";
+
 export const dynamic = "force-dynamic";
 
 export default async function MyBotsPage() {
@@ -22,7 +24,7 @@ export default async function MyBotsPage() {
       ) : (
         <table>
           <thead>
-            <tr><th>Name</th><th>Created</th><th></th></tr>
+            <tr><th>Name</th><th>Created</th><th></th><th></th></tr>
           </thead>
           <tbody>
             {list.map((b) => (
@@ -30,6 +32,7 @@ export default async function MyBotsPage() {
                 <td><Link href={`/bots/${b.id}`}>{b.name}</Link></td>
                 <td>{b.createdAt.toLocaleDateString()}</td>
                 <td><Link href={`/bots/${b.id}`}>Edit →</Link></td>
+                <td><DeleteBotButton botId={b.id} botName={b.name} /></td>
               </tr>
             ))}
           </tbody>

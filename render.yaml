@@ -26,3 +26,7 @@ services:
         sync: false
       - key: GOOGLE_CLIENT_SECRET
         sync: false
+# NOTE: the bot trainer runs IN-PROCESS inside the web service (server.ts).
+# Render free tier doesn't include background workers, so we co-locate.
+# Toggle bots into the trainer at /admin/training. To disable globally set
+# DISABLE_TRAINER=1 on the web service.

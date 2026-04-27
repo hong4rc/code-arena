@@ -3,4 +3,8 @@ export * from "./bots/clone-bot.ts";
 export * from "./matches/run-match.ts";
 export * from "./matches/run-match-engine.ts";
 export * from "./matches/schedule-auto-matches.ts";
+export * from "./matches/create-custom-match.ts";
 export * from "./users/get-or-create-user.ts";
+export * from "./admin/delete-bot.ts";
+export * from "./admin/delete-match.ts";
+export * from "./admin/wipe-matches.ts";

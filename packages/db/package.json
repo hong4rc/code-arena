@@ -13,6 +13,9 @@
     "generate": "drizzle-kit generate",
     "migrate": "bun src/migrate.ts",
     "seed": "bun src/seed.ts",
+    "stats": "bun src/stats.ts",
+    "debug-match": "bun src/debug-match.ts",
+    "reset": "bun src/reset.ts",
     "studio": "drizzle-kit studio"
   },
   "dependencies": {

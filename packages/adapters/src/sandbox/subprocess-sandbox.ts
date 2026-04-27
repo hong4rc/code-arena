@@ -6,7 +6,7 @@ import type { BotProcess, Sandbox, SandboxSpawnRequest } from "@arena/applicatio
 import type { Action, Observation } from "@arena/domain";
 
 import { findHarness } from "./harness-path.ts";
-import { ask, kill, spawn, type SpawnedProcess } from "./spawn.ts";
+import { ask, askFinalize, kill, sendInit, spawn, type SpawnedProcess } from "./spawn.ts";
 
 /** A BotProcess backed by a single OS subprocess + harness, no nsjail. */
 class SubprocessBot implements BotProcess {
@@ -19,6 +19,9 @@ class SubprocessBot implements BotProcess {
   ask(observation: Observation, timeoutMs: number): Promise<{ action: Action | null; protocolError?: "timeout" | "crash" | "malformed" }> {
     return ask(this.sp, observation, timeoutMs);
   }
+
+  init(params: unknown): void { sendInit(this.sp, params); }
+  finalize(info: unknown, timeoutMs: number): Promise<unknown> { return askFinalize(this.sp, info, timeoutMs); }
 
   get stderr(): string { return this.sp.stderr; }
 

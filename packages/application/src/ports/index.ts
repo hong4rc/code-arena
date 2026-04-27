@@ -1,6 +1,7 @@
 export * from "./clock.ts";
 export * from "./user-repo.ts";
 export * from "./bot-repo.ts";
+export * from "./bot-params-repo.ts";
 export * from "./match-repo.ts";
 export * from "./rating-repo.ts";
 export * from "./season-repo.ts";

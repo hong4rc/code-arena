@@ -1,11 +1,11 @@
 # syntax=docker/dockerfile:1.7
 # Code Arena — single-image deploy: Next.js + WebSocket + scheduler + match runner.
 # Includes nsjail for sandboxing user bot subprocesses.
-FROM oven/bun:1.1-debian AS base
+FROM oven/bun:1.3-debian AS base
 
-# Build nsjail from source. Use Bullseye to match the Bun runtime base
-# (oven/bun:1.1-debian = Debian 11) so libprotobuf links cleanly across stages.
-FROM debian:11-slim AS nsjail-builder
+# Build nsjail from source. Match the Bun runtime base (Bun 1.3-debian uses
+# Debian 12 Bookworm) so libprotobuf links cleanly across stages.
+FROM debian:12-slim AS nsjail-builder
 RUN apt-get update && apt-get install -y --no-install-recommends \
     autoconf bison flex gcc g++ git libprotobuf-dev libnl-route-3-dev \
     libtool make pkg-config protobuf-compiler ca-certificates \
@@ -39,13 +39,13 @@ WORKDIR /app/apps/web
 RUN bun run build
 
 # --- Runtime stage ---
-FROM oven/bun:1.1-debian AS runtime
+FROM oven/bun:1.3-debian AS runtime
 WORKDIR /app
 
 # nsjail runtime deps + a Node binary for bot subprocesses.
-# Bullseye package names: libprotobuf23 (vs libprotobuf32 on Bookworm).
+# Bookworm package names.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libprotobuf23 libnl-route-3-200 nodejs ca-certificates tini \
+    libprotobuf32 libnl-route-3-200 nodejs ca-certificates tini \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy nsjail.

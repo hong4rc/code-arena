@@ -11,14 +11,32 @@ import { WebSocketServer } from "ws";
 
 import { startRunnerDriver } from "./src/server/runner-driver.ts";
 import { startSchedulerDriver } from "./src/server/scheduler-driver.ts";
+import { startTrainerDriver } from "./src/server/trainer-driver.ts";
 import { handleMatchWs } from "./src/server/ws-handler.ts";
+
+import type { Duplex } from "node:stream";
+
+type UpgradeHandler = (req: IncomingMessage, socket: Duplex, head: Buffer) => void;
 
 const port = Number(process.env.PORT ?? 3000);
 const dev = process.env.NODE_ENV !== "production";
 
-const app = next({ dev, hostname: "0.0.0.0", port });
-const handle = app.getRequestHandler();
+// IMPORTANT: separate "bind interface" from "URL hostname".
+//   - bindHost is what we listen on. 0.0.0.0 = all interfaces (needed for
+//     containers to be reachable from outside).
+//   - urlHostname is what Next bakes into req.url and any URL it constructs.
+//     If we set this to 0.0.0.0, NextResponse.redirect(new URL(..., req.url))
+//     produces http://0.0.0.0:3000/... — but cookies are scoped to "localhost",
+//     so the browser arrives without a session cookie → login loop.
+const bindHost = "0.0.0.0";
+const urlHostname = dev ? "localhost" : (process.env.AUTH_URL?.replace(/^https?:\/\//, "").split(":")[0] ?? "0.0.0.0");
+
+const app = next({ dev, hostname: urlHostname, port });
 await app.prepare();
+const handle = app.getRequestHandler();
+// Next 15+: dev-mode WebSocket upgrades (HMR, server actions) need to be
+// forwarded to Next's own upgrade handler. Must come after prepare().
+const upgradeHandler = (app as { getUpgradeHandler?: () => UpgradeHandler }).getUpgradeHandler?.();
 
 const server = createServer((req: IncomingMessage, res: ServerResponse) => {
   const parsed = parse(req.url ?? "", true);
@@ -32,30 +50,35 @@ const server = createServer((req: IncomingMessage, res: ServerResponse) => {
 const wss = new WebSocketServer({ noServer: true });
 
 server.on("upgrade", (req, socket, head) => {
-  try {
-    const url = new URL(req.url ?? "", "http://localhost");
-    const m = url.pathname.match(/^\/api\/ws\/match\/([^/]+)$/);
-    if (!m) {
-      socket.destroy();
-      return;
-    }
+  const url = new URL(req.url ?? "", "http://localhost");
+  const m = url.pathname.match(/^\/api\/ws\/match\/([^/]+)$/);
+  if (m) {
     const matchId = m[1]!;
     wss.handleUpgrade(req, socket, head, (ws) => {
       void handleMatchWs(ws, req, matchId);
     });
-  } catch (error) {
-    console.error("upgrade error:", error);
+    return;
+  }
+  // Anything else (HMR /_next/webpack-hmr, server actions, …) — let Next handle it.
+  if (upgradeHandler) {
+    upgradeHandler(req, socket, head);
+  } else {
     socket.destroy();
   }
 });
 
-server.listen(port, "0.0.0.0", () => {
-  console.log(`> ready on http://0.0.0.0:${port}`);
+server.listen(port, bindHost, () => {
+  console.log(`> ready on http://${urlHostname}:${port}`);
 });
 
 if (process.env.DISABLE_BACKGROUND !== "1") {
   startSchedulerDriver();
   startRunnerDriver();
+  // Trainer is in-process by default. Set DISABLE_TRAINER=1 to opt out
+  // (e.g. when Render free spins down and you don't want the loop running).
+  if (process.env.DISABLE_TRAINER !== "1") {
+    startTrainerDriver();
+  }
 }
 
 for (const sig of ["SIGINT", "SIGTERM"] as const) {

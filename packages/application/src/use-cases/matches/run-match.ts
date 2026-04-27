@@ -3,6 +3,7 @@ import { INITIAL_RATING, updateMatchRatings } from "@arena/domain";
 import { runMatchEngine } from "./run-match-engine.ts";
 
 import type {
+  BotParamsRepo,
   BotProcess,
   BotRepo,
   Clock,
@@ -20,8 +21,14 @@ export interface RunMatchDeps {
   sandbox: Sandbox;
   events: EventPublisher;
   clock: Clock;
+  /** Optional — when present, persistent params load before match and save after. */
+  botParams?: BotParamsRepo;
   /** Floor for tick-pacing (ms) so live spectators can follow along. */
   tickFloorMs?: number;
+}
+
+function truncate(s: string, n: number): string {
+  return s.length > n ? `${s.slice(0, n)}…` : s;
 }
 
 /** Pull a pending match, spawn bots, run the engine, persist replay, update ratings. */
@@ -49,15 +56,31 @@ export class RunMatchUseCase {
       return;
     }
 
-    const tickFloor = this.deps.tickFloorMs ?? 700;
+    // Load persistent params for each bot (if the repo is wired in). Bots that
+    // never saved any get an empty `{}`. The runner snapshots whatever's in
+    // state.params at end-of-match — so even bots that don't read params will
+    // start contributing rows once they ship a save.
+    const initialParams: Record<string, unknown> = {};
+    if (this.deps.botParams) {
+      await Promise.all(procs.map(async (proc) => {
+        const row = await this.deps.botParams!.latest(proc.botId);
+        initialParams[proc.botId] = row?.params ?? {};
+      }));
+    }
+
+    // Tick floor for live spectator pacing. Default 0 (run as fast as the
+    // engine + bot subprocesses allow). Set in composition root if you want
+    // to slow live ticks for human-watchable replays.
+    const tickFloor = this.deps.tickFloorMs ?? 0;
 
     try {
       const replay = await runMatchEngine({
         bots: procs,
         seed: match.seed,
+        initialParams,
         onTick: async (tick) => {
           this.deps.events.publishTick(matchId, tick);
-          await new Promise<void>((r) => setTimeout(r, tickFloor));
+          if (tickFloor > 0) await new Promise<void>((r) => setTimeout(r, tickFloor));
         },
       });
 
@@ -66,13 +89,17 @@ export class RunMatchUseCase {
       const placementByBotId = new Map(replay.finalPlacements.map((p) => [p.botId, p.placement]));
       const lastSnap = replay.ticks.at(-1)?.worldSnapshot.bots ?? [];
       const hpById = new Map(lastSnap.map((b) => [b.id, b.hp]));
+      const statsById = new Map(replay.finalStats.map((s) => [s.botId, s]));
 
       for (const proc of procs) {
+        const stats = statsById.get(proc.botId);
         await this.deps.matches.setParticipantOutcome({
           matchId,
           botId: proc.botId,
           placement: placementByBotId.get(proc.botId) ?? procs.length,
           finalHp: hpById.get(proc.botId) ?? 0,
+          damageDealt: stats?.damageDealt ?? 0,
+          itemsPicked: stats?.itemsPicked ?? 0,
         });
       }
 
@@ -109,6 +136,22 @@ export class RunMatchUseCase {
             finalHp: hpById.get(botId) ?? 0,
             ratingDelta: delta,
           });
+        }
+      }
+
+      // Persist updated bot params (one new version per bot whose params
+      // changed — null replies mean "no save", e.g. crashed/legacy bot).
+      // Each save is logged so it's visible from the dev console / runner logs
+      // why a bot's behaviour evolved across matches.
+      if (this.deps.botParams) {
+        for (const [botId, params] of Object.entries(replay.finalParams)) {
+          if (params === null || params === undefined) continue;
+          const beforeStr = JSON.stringify(initialParams[botId] ?? {});
+          const afterStr = JSON.stringify(params);
+          if (beforeStr === afterStr) continue;
+          const { version } = await this.deps.botParams.saveNewVersion(botId, params);
+          // eslint-disable-next-line no-console
+          console.log(`[learn] match=${matchId.slice(0, 8)} bot=${botId.slice(0, 8)} v${version} params=${truncate(afterStr, 240)}`);
         }
       }
 

@@ -102,8 +102,10 @@ export async function smokeRun(code: string, opts: SmokeRunOptions = {}): Promis
     const config = mergeConfig({ width: 5, height: 5 });
     const obs: Observation = {
       tick: 0,
-      self: { x: 2, y: 2, hp: 100, attack: 10, speed: 1, inventory: [] },
+      self: { x: 2, y: 2, size: 1, hp: 100, attack: 10, speed: 1, inventory: [], shootCooldown: 0, dashCooldown: 0 },
       view: Array.from({ length: 5 }, () => Array.from({ length: 5 }, () => ({ kind: "empty" as const }))),
+      zone: { xMin: 0, yMin: 0, xMax: 4, yMax: 4, nextZone: null, ticksUntilShrink: null },
+      roster: [{ id: "smoke", alive: true }],
       tickTimeMs: config.tickTimeMs,
     };
     const result = await ask(sp, obs, opts.timeoutMs ?? 1000);

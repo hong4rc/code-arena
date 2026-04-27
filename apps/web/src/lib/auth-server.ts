@@ -12,10 +12,19 @@ function build() {
   return betterAuth({
     baseURL: baseUrl,
     secret: process.env.AUTH_SECRET ?? "dev-only-not-for-production",
+    // Allow OAuth state cookies to round-trip from this exact origin. Without
+    // this, Better Auth rejects the callback with state_mismatch even when the
+    // host is correct.
+    trustedOrigins: [baseUrl],
     // Our Drizzle schema uses plural table names (users/sessions/accounts/
     // verifications); Better Auth defaults to singular. Tell it otherwise.
     database: drizzleAdapter(getDb(), { provider: "pg", usePlural: true }),
-    advanced: { database: { generateId: uuidv7 } },
+    advanced: {
+      database: { generateId: uuidv7 },
+      // OAuth dance bounces through Google → must allow the state cookie to
+      // come back on the cross-site redirect. SameSite=Lax is what enables that.
+      defaultCookieAttributes: { sameSite: "lax" },
+    },
     socialProviders: {
       google: {
         clientId: process.env.GOOGLE_CLIENT_ID ?? "",

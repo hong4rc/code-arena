@@ -1,0 +1,1 @@
+ALTER TABLE "bots" ADD COLUMN "is_training_target" boolean DEFAULT false NOT NULL;

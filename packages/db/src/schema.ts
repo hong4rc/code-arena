@@ -84,6 +84,12 @@ export const bots = pgTable(
     description: text("description"),
     isPublic: boolean("is_public").notNull().default(false),
     isOfficial: boolean("is_official").notNull().default(false),
+    /**
+     * If true, the trainer service evolves this bot's params in the background.
+     * Toggleable from the admin UI. Opponents in those training matches come
+     * from the rest of the live bot pool — their params are read but never written.
+     */
+    isTrainingTarget: boolean("is_training_target").notNull().default(false),
     clonedFromBotId: uuid("cloned_from_bot_id"),
     currentVersionId: uuid("current_version_id"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -215,6 +221,28 @@ export const matchReplays = pgTable("match_replays", {
   ticks: jsonb("ticks").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+/**
+ * Bot-controlled per-bot persistent params. Bots write a `state.params` blob
+ * at end of match; runner snapshots it as a new versioned row. Old versions
+ * are kept (audit / rollback). Reading: take `version DESC LIMIT 1`.
+ */
+export const botParams = pgTable(
+  "bot_params",
+  {
+    id: uuid("id").primaryKey().$defaultFn(uuidv7),
+    botId: uuid("bot_id")
+      .notNull()
+      .references(() => bots.id, { onDelete: "cascade" }),
+    version: integer("version").notNull(),
+    params: jsonb("params").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    byBotVersion: uniqueIndex("bot_params_by_bot_version").on(t.botId, t.version),
+    byBotLatest: index("bot_params_by_bot_latest").on(t.botId, t.createdAt),
+  }),
+);
 
 export const metricSnapshots = pgTable(
   "metric_snapshots",

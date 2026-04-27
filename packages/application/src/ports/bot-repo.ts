@@ -5,6 +5,7 @@ export interface Bot {
   description: string | null;
   isPublic: boolean;
   isOfficial: boolean;
+  isTrainingTarget: boolean;
   clonedFromBotId: string | null;
   currentVersionId: string | null;
   createdAt: Date;
@@ -37,4 +38,12 @@ export interface BotRepo {
   latestVersion(botId: string): Promise<BotVersion | null>;
   /** Most recent runnable version. */
   latestRunnableVersion(botId: string): Promise<BotVersion | null>;
+
+  /** Hard-delete the bot and everything that references it. */
+  delete(id: string): Promise<void>;
+
+  /** Bots flagged as training targets (admin toggle). */
+  findTrainingTargets(): Promise<Bot[]>;
+  /** Toggle whether the trainer service should evolve this bot. */
+  setTrainingTarget(id: string, on: boolean): Promise<void>;
 }
