@@ -6,7 +6,7 @@ import { getCurrentUser } from "@/lib/auth";
 
 export default async function MyBotsPage() {
   const user = await getCurrentUser();
-  if (!user) redirect("/auth/login");
+  if (!user) redirect("/login");
   const db = getDb();
   const list = await db.select().from(bots).where(eq(bots.ownerId, user.id));
 

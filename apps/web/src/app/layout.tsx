@@ -18,7 +18,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           <a href="/matches">Matches</a>
           <a href="/leaderboard">Leaderboard</a>
           <span style={{ flex: 1 }} />
-          <a href="/auth/login">Sign in</a>
+          <a href="/login">Sign in</a>
         </header>
         <main style={{ padding: 24, maxWidth: 1100, margin: "0 auto" }}>{children}</main>
       </body>

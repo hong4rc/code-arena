@@ -1,24 +1,15 @@
+import { headers } from "next/headers";
 import { eq, getDb, users } from "@arena/db";
-import { getSessionUser } from "./supabase-server.ts";
+import { auth } from "./auth-server.ts";
 
-/**
- * Returns the application user row, creating one on first sign-in.
- */
+/** Returns the application user row for the current request, or null. */
 export async function getCurrentUser() {
-  const auth = await getSessionUser();
-  if (!auth) return null;
+  const hdrs = await headers();
+  const session = await auth.api.getSession({ headers: hdrs });
+  if (!session?.user) return null;
   const db = getDb();
-  const found = await db.select().from(users).where(eq(users.authId, auth.id)).limit(1);
-  if (found[0]) return found[0];
-  const inserted = await db
-    .insert(users)
-    .values({
-      authId: auth.id,
-      email: auth.email ?? "",
-      name: (auth.user_metadata?.full_name as string | undefined) ?? null,
-    })
-    .returning();
-  return inserted[0]!;
+  const [row] = await db.select().from(users).where(eq(users.id, session.user.id)).limit(1);
+  return row ?? null;
 }
 
 export async function requireUser() {

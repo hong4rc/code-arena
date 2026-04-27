@@ -29,13 +29,18 @@ const db = getDb();
 
 console.log("Seeding…");
 
-// 1. System user.
-const SYSTEM_AUTH_ID = "00000000-0000-0000-0000-000000000001";
-let [system] = await db.select().from(users).where(eq(users.authId, SYSTEM_AUTH_ID)).limit(1);
+// 1. System user (owns the official sample bots). Looked up by email so this
+// is idempotent across reseeds; the id is auto-generated UUIDv7.
+let [system] = await db.select().from(users).where(eq(users.email, "system@arena.local")).limit(1);
 if (!system) {
   [system] = await db
     .insert(users)
-    .values({ authId: SYSTEM_AUTH_ID, email: "system@arena.local", name: "Arena", role: "admin" })
+    .values({
+      email: "system@arena.local",
+      emailVerified: true,
+      name: "Arena",
+      role: "admin",
+    })
     .returning();
   console.log("  created system user");
 }

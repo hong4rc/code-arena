@@ -2,8 +2,24 @@ CREATE TYPE "public"."bot_language" AS ENUM('js', 'ts');--> statement-breakpoint
 CREATE TYPE "public"."match_kind" AS ENUM('auto', 'custom', 'sim', 'test');--> statement-breakpoint
 CREATE TYPE "public"."match_status" AS ENUM('pending', 'running', 'done', 'failed');--> statement-breakpoint
 CREATE TYPE "public"."user_role" AS ENUM('user', 'admin');--> statement-breakpoint
+CREATE TABLE "accounts" (
+	"id" text PRIMARY KEY NOT NULL,
+	"user_id" text NOT NULL,
+	"account_id" text NOT NULL,
+	"provider_id" text NOT NULL,
+	"access_token" text,
+	"refresh_token" text,
+	"id_token" text,
+	"access_token_expires_at" timestamp with time zone,
+	"refresh_token_expires_at" timestamp with time zone,
+	"scope" text,
+	"password" text,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
 CREATE TABLE "bot_versions" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"id" uuid PRIMARY KEY NOT NULL,
 	"bot_id" uuid NOT NULL,
 	"code" text NOT NULL,
 	"language" "bot_language" DEFAULT 'js' NOT NULL,
@@ -14,8 +30,8 @@ CREATE TABLE "bot_versions" (
 );
 --> statement-breakpoint
 CREATE TABLE "bots" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"owner_id" uuid NOT NULL,
+	"id" uuid PRIMARY KEY NOT NULL,
+	"owner_id" text NOT NULL,
 	"name" text NOT NULL,
 	"description" text,
 	"is_public" boolean DEFAULT false NOT NULL,
@@ -26,7 +42,7 @@ CREATE TABLE "bots" (
 );
 --> statement-breakpoint
 CREATE TABLE "configs" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"id" uuid PRIMARY KEY NOT NULL,
 	"name" text NOT NULL,
 	"params" jsonb NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
@@ -57,7 +73,7 @@ CREATE TABLE "match_replays" (
 );
 --> statement-breakpoint
 CREATE TABLE "matches" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"id" uuid PRIMARY KEY NOT NULL,
 	"season_id" uuid,
 	"kind" "match_kind" NOT NULL,
 	"status" "match_status" DEFAULT 'pending' NOT NULL,
@@ -89,7 +105,7 @@ CREATE TABLE "ratings" (
 );
 --> statement-breakpoint
 CREATE TABLE "seasons" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"id" uuid PRIMARY KEY NOT NULL,
 	"name" text NOT NULL,
 	"started_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"ended_at" timestamp with time zone,
@@ -97,16 +113,40 @@ CREATE TABLE "seasons" (
 	"is_active" boolean DEFAULT false NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "users" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"auth_id" uuid NOT NULL,
-	"email" text NOT NULL,
-	"name" text,
-	"role" "user_role" DEFAULT 'user' NOT NULL,
+CREATE TABLE "sessions" (
+	"id" text PRIMARY KEY NOT NULL,
+	"user_id" text NOT NULL,
+	"token" text NOT NULL,
+	"expires_at" timestamp with time zone NOT NULL,
+	"ip_address" text,
+	"user_agent" text,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
-	CONSTRAINT "users_auth_id_unique" UNIQUE("auth_id")
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "sessions_token_unique" UNIQUE("token")
 );
 --> statement-breakpoint
+CREATE TABLE "users" (
+	"id" text PRIMARY KEY NOT NULL,
+	"email" text NOT NULL,
+	"email_verified" boolean DEFAULT false NOT NULL,
+	"name" text,
+	"image" text,
+	"role" "user_role" DEFAULT 'user' NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "users_email_unique" UNIQUE("email")
+);
+--> statement-breakpoint
+CREATE TABLE "verifications" (
+	"id" text PRIMARY KEY NOT NULL,
+	"identifier" text NOT NULL,
+	"value" text NOT NULL,
+	"expires_at" timestamp with time zone NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+ALTER TABLE "accounts" ADD CONSTRAINT "accounts_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "bot_versions" ADD CONSTRAINT "bot_versions_bot_id_bots_id_fk" FOREIGN KEY ("bot_id") REFERENCES "public"."bots"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "bots" ADD CONSTRAINT "bots_owner_id_users_id_fk" FOREIGN KEY ("owner_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "match_participants" ADD CONSTRAINT "match_participants_match_id_matches_id_fk" FOREIGN KEY ("match_id") REFERENCES "public"."matches"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
@@ -119,6 +159,7 @@ ALTER TABLE "matches" ADD CONSTRAINT "matches_config_id_configs_id_fk" FOREIGN K
 ALTER TABLE "metric_snapshots" ADD CONSTRAINT "metric_snapshots_season_id_seasons_id_fk" FOREIGN KEY ("season_id") REFERENCES "public"."seasons"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "ratings" ADD CONSTRAINT "ratings_bot_id_bots_id_fk" FOREIGN KEY ("bot_id") REFERENCES "public"."bots"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "ratings" ADD CONSTRAINT "ratings_season_id_seasons_id_fk" FOREIGN KEY ("season_id") REFERENCES "public"."seasons"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "sessions" ADD CONSTRAINT "sessions_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 CREATE INDEX "bot_versions_by_bot" ON "bot_versions" USING btree ("bot_id","uploaded_at");--> statement-breakpoint
 CREATE INDEX "bots_by_owner" ON "bots" USING btree ("owner_id");--> statement-breakpoint
 CREATE INDEX "bots_by_official" ON "bots" USING btree ("is_official");--> statement-breakpoint

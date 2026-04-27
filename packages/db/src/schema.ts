@@ -13,27 +13,70 @@ import {
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
+import { uuidv7 } from "./uuidv7.ts";
 
 export const userRole = pgEnum("user_role", ["user", "admin"]);
 export const matchKind = pgEnum("match_kind", ["auto", "custom", "sim", "test"]);
 export const matchStatus = pgEnum("match_status", ["pending", "running", "done", "failed"]);
 export const botLanguage = pgEnum("bot_language", ["js", "ts"]);
 
+// Better Auth uses TEXT ids by default (cuid). We follow that convention for
+// users + sessions + accounts so the auth tables interop cleanly.
 export const users = pgTable("users", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  /** Supabase auth.users.id — propagated by trigger on first sign-in. */
-  authId: uuid("auth_id").unique().notNull(),
-  email: text("email").notNull(),
+  id: text("id").primaryKey().$defaultFn(uuidv7),
+  email: text("email").notNull().unique(),
+  emailVerified: boolean("email_verified").notNull().default(false),
   name: text("name"),
+  image: text("image"),
   role: userRole("role").notNull().default("user"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** Better Auth: per-device session. */
+export const sessions = pgTable("sessions", {
+  id: text("id").primaryKey().$defaultFn(uuidv7),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  token: text("token").notNull().unique(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** Better Auth: linked OAuth provider account (one row per user × provider). */
+export const accounts = pgTable("accounts", {
+  id: text("id").primaryKey().$defaultFn(uuidv7),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  accountId: text("account_id").notNull(),
+  providerId: text("provider_id").notNull(),
+  accessToken: text("access_token"),
+  refreshToken: text("refresh_token"),
+  idToken: text("id_token"),
+  accessTokenExpiresAt: timestamp("access_token_expires_at", { withTimezone: true }),
+  refreshTokenExpiresAt: timestamp("refresh_token_expires_at", { withTimezone: true }),
+  scope: text("scope"),
+  password: text("password"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** Better Auth: e.g. magic-link tokens. We don't use them but the table is required. */
+export const verifications = pgTable("verifications", {
+  id: text("id").primaryKey().$defaultFn(uuidv7),
+  identifier: text("identifier").notNull(),
+  value: text("value").notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
 export const bots = pgTable(
   "bots",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
-    ownerId: uuid("owner_id")
+    id: uuid("id").primaryKey().$defaultFn(uuidv7),
+    ownerId: text("owner_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
@@ -53,7 +96,7 @@ export const bots = pgTable(
 export const botVersions = pgTable(
   "bot_versions",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    id: uuid("id").primaryKey().$defaultFn(uuidv7),
     botId: uuid("bot_id")
       .notNull()
       .references(() => bots.id, { onDelete: "cascade" }),
@@ -70,7 +113,7 @@ export const botVersions = pgTable(
 );
 
 export const seasons = pgTable("seasons", {
-  id: uuid("id").primaryKey().defaultRandom(),
+  id: uuid("id").primaryKey().$defaultFn(uuidv7),
   name: text("name").notNull(),
   startedAt: timestamp("started_at", { withTimezone: true }).notNull().defaultNow(),
   endedAt: timestamp("ended_at", { withTimezone: true }),
@@ -79,7 +122,7 @@ export const seasons = pgTable("seasons", {
 });
 
 export const configs = pgTable("configs", {
-  id: uuid("id").primaryKey().defaultRandom(),
+  id: uuid("id").primaryKey().$defaultFn(uuidv7),
   name: text("name").notNull(),
   params: jsonb("params").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -123,7 +166,7 @@ export const matchQueue = pgTable(
 export const matches = pgTable(
   "matches",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    id: uuid("id").primaryKey().$defaultFn(uuidv7),
     seasonId: uuid("season_id").references(() => seasons.id, { onDelete: "set null" }),
     kind: matchKind("kind").notNull(),
     status: matchStatus("status").notNull().default("pending"),

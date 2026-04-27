@@ -1,17 +1,17 @@
 "use client";
-import { supabaseBrowser } from "@/lib/supabase-browser";
+import { authClient } from "@/lib/auth-client";
 
 export default function LoginPage() {
   async function signIn() {
-    const supabase = supabaseBrowser();
-    await supabase.auth.signInWithOAuth({
+    await authClient.signIn.social({
       provider: "google",
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
+      callbackURL: "/bots",
     });
   }
   return (
     <div>
       <h1>Sign in</h1>
+      <p>Sign in with your Google account to submit and manage bots.</p>
       <button className="primary" onClick={signIn}>Continue with Google</button>
     </div>
   );

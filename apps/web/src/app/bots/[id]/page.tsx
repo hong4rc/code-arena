@@ -8,7 +8,7 @@ import { BotEditor } from "@/components/BotEditor";
 export default async function EditBotPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const user = await getCurrentUser();
-  if (!user) redirect("/auth/login");
+  if (!user) redirect("/login");
   const db = getDb();
   const [bot] = await db.select().from(bots).where(and(eq(bots.id, id), eq(bots.ownerId, user.id))).limit(1);
   if (!bot) notFound();

@@ -3,6 +3,7 @@ import postgres from "postgres";
 import * as schema from "./schema.ts";
 
 export * from "./schema.ts";
+export { uuidv7 } from "./uuidv7.ts";
 export { sql, eq, and, or, desc, asc, inArray, gt, gte, lt, lte, isNull } from "drizzle-orm";
 
 let _db: ReturnType<typeof drizzle<typeof schema>> | null = null;

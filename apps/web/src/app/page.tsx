@@ -11,7 +11,7 @@ export default async function HomePage() {
       {user ? (
         <p>Signed in as <b>{user.name ?? user.email}</b>. <a href="/bots">Go to my bots →</a></p>
       ) : (
-        <p><a href="/auth/login">Sign in with Google</a> to submit a bot.</p>
+        <p><a href="/login">Sign in with Google</a> to submit a bot.</p>
       )}
       <div style={{ marginTop: 32 }}>
         <h2>How it works</h2>

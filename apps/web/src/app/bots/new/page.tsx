@@ -10,7 +10,7 @@ const TEMPLATE_PATH = join(process.cwd(), "..", "..", "bots", "samples", "bot-te
 
 export default async function NewBotPage() {
   const user = await getCurrentUser();
-  if (!user) redirect("/auth/login");
+  if (!user) redirect("/login");
   let template: string;
   try {
     template = readFileSync(TEMPLATE_PATH, "utf8");

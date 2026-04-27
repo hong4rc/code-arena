@@ -54,6 +54,7 @@ export default [
       "**/node_modules/**",
       "**/*.config.js",
       "**/next.config.mjs",
+      "**/next-env.d.ts",
     ],
   },
   js.configs.recommended,
