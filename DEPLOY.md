@@ -235,7 +235,9 @@ bun run migrate
 | `redirect_uri_mismatch` from Google | Google Cloud → Credentials → Code Arena web. The redirect URI must be `https://YOUR-REAL-URL.onrender.com/api/auth/callback/google` — character-perfect. |
 | Sign-in succeeds but lands on 404 | `AUTH_URL` in Render env doesn't match your real URL. Update + redeploy. |
 | App goes to sleep | UptimeRobot dashboard → confirm monitor shows green every 5 min. |
-| Build fails on `nsjail` step | Render's free build minutes can be slow; click **Manual Deploy → Deploy latest commit**. nsjail isn't required at runtime — runner falls back to plain subprocess. |
+| `Next.js build worker exited with code: 1` | OOM on Render free 512 MB. The Dockerfile already caps V8 heap at 400 MB; if it still OOMs, drop `--ticks` in any local jobs and try **Manual Deploy → Deploy latest commit**. |
+| Trainer logs spam | Set `DISABLE_TRAINER=1` on the Render service env to keep matches but skip evolution. |
+| `is_training_target` column missing | Last migration didn't apply. From local: `set -a; source .env; set +a; cd packages/db && bun run migrate` against the same Neon DB. |
 | `DATABASE_URL not set` in Render logs | Step 6 didn't take. Re-paste `apps/web/.env` into Render's bulk-add. |
 | Scheduler logs `only N bots — need 20` | Clone more samples, or insert via the SQL in Step 10. |
 
@@ -245,7 +247,7 @@ bun run migrate
 
 | Resource | Free | Hits limit when |
 |---|---|---|
-| Render free | 512 MB / 0.1 CPU / 750 hr | 10 bot subprocesses near OOM. Drop `MATCHES_PER_CYCLE`. |
+| Render free | 512 MB / 0.1 CPU / 750 hr | 10 bot subprocesses near OOM. Drop `SCHEDULE_MATCH_SIZE`, or `DISABLE_TRAINER=1` to free RAM. |
 | Neon free | 0.5 GB / autosuspend | replays ~30 KB/match → ~16k matches before full. |
 | UptimeRobot | 50 monitors | n/a |
 | Google OAuth | unlimited | n/a |
