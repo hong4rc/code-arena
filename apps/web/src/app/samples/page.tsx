@@ -1,10 +1,9 @@
-import { bots, eq, getDb } from "@arena/db";
+import { composition } from "@/composition";
 
 export const dynamic = "force-dynamic";
 
 export default async function SamplesPage() {
-  const db = getDb();
-  const list = await db.select().from(bots).where(eq(bots.isOfficial, true));
+  const list = await composition.repos.bots.findOfficial();
 
   return (
     <div>

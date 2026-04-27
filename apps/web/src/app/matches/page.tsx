@@ -1,10 +1,11 @@
-import { desc, getDb, matches } from "@arena/db";
+import Link from "next/link";
+
+import { composition } from "@/composition";
 
 export const dynamic = "force-dynamic";
 
 export default async function MatchesPage() {
-  const db = getDb();
-  const list = await db.select().from(matches).orderBy(desc(matches.createdAt)).limit(50);
+  const list = await composition.repos.matches.recent(50);
   return (
     <div>
       <h1>Recent matches</h1>
@@ -16,8 +17,8 @@ export default async function MatchesPage() {
               <td><code>{m.id.slice(0, 8)}</code></td>
               <td>{m.kind}</td>
               <td>{m.status}</td>
-              <td>{new Date(m.createdAt).toLocaleString()}</td>
-              <td><a href={`/replay/${m.id}`}>{m.status === "running" ? "Watch live →" : "Replay →"}</a></td>
+              <td>{m.createdAt.toLocaleString()}</td>
+              <td><Link href={`/replay/${m.id}`}>{m.status === "running" ? "Watch live →" : "Replay →"}</Link></td>
             </tr>
           ))}
         </tbody>

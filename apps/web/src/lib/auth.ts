@@ -1,6 +1,6 @@
 import { headers } from "next/headers";
 
-import { eq, getDb, users } from "@arena/db";
+import { composition } from "@/composition";
 
 import { auth } from "./auth-server.ts";
 
@@ -9,9 +9,7 @@ export async function getCurrentUser() {
   const hdrs = await headers();
   const session = await auth.api.getSession({ headers: hdrs });
   if (!session?.user) return null;
-  const db = getDb();
-  const [row] = await db.select().from(users).where(eq(users.id, session.user.id)).limit(1);
-  return row ?? null;
+  return composition.repos.users.findById(session.user.id);
 }
 
 export async function requireUser() {

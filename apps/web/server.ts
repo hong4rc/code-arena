@@ -1,5 +1,5 @@
 /* eslint-disable no-console */
-// Single entrypoint for the Fly.io container.
+// Single entrypoint for the Fly.io / Render container.
 // Run with `bun server.ts` (bun resolves TS natively in dev and prod).
 // Hosts: Next.js (pages + API), WebSocket /api/ws/match/:id,
 //        in-process matchmaking scheduler + match runner pump.
@@ -9,8 +9,8 @@ import { parse } from "node:url";
 import next from "next";
 import { WebSocketServer } from "ws";
 
-import { pickPendingMatches, runOneMatch } from "./src/server/run-match.ts";
-import { startScheduler } from "./src/server/scheduler.ts";
+import { startRunnerDriver } from "./src/server/runner-driver.ts";
+import { startSchedulerDriver } from "./src/server/scheduler-driver.ts";
 import { handleMatchWs } from "./src/server/ws-handler.ts";
 
 const port = Number(process.env.PORT ?? 3000);
@@ -54,17 +54,8 @@ server.listen(port, "0.0.0.0", () => {
 });
 
 if (process.env.DISABLE_BACKGROUND !== "1") {
-  startScheduler();
-  setInterval(() => {
-    void (async () => {
-      try {
-        const pending = await pickPendingMatches(1);
-        for (const id of pending) await runOneMatch(id);
-      } catch (error) {
-        console.error("[runner pump]", error);
-      }
-    })();
-  }, 2000);
+  startSchedulerDriver();
+  startRunnerDriver();
 }
 
 for (const sig of ["SIGINT", "SIGTERM"] as const) {

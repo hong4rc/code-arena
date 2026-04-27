@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { bots, eq, getDb } from "@arena/db";
-
+import { composition } from "@/composition";
 import { getCurrentUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
@@ -10,8 +9,7 @@ export const dynamic = "force-dynamic";
 export default async function MyBotsPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
-  const db = getDb();
-  const list = await db.select().from(bots).where(eq(bots.ownerId, user.id));
+  const list = await composition.repos.bots.findByOwner(user.id);
 
   return (
     <div>
@@ -30,7 +28,7 @@ export default async function MyBotsPage() {
             {list.map((b) => (
               <tr key={b.id}>
                 <td><Link href={`/bots/${b.id}`}>{b.name}</Link></td>
-                <td>{new Date(b.createdAt).toLocaleDateString()}</td>
+                <td>{b.createdAt.toLocaleDateString()}</td>
                 <td><Link href={`/bots/${b.id}`}>Edit →</Link></td>
               </tr>
             ))}

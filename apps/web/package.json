@@ -9,11 +9,10 @@
     "start": "NODE_ENV=production bun server.ts"
   },
   "dependencies": {
+    "@arena/adapters": "workspace:*",
+    "@arena/application": "workspace:*",
     "@arena/db": "workspace:*",
-    "@arena/engine": "workspace:*",
-    "@arena/rating": "workspace:*",
-    "@arena/runner": "workspace:*",
-    "@arena/validation": "workspace:*",
+    "@arena/domain": "workspace:*",
     "@monaco-editor/react": "^4.6.0",
     "@types/ws": "^8.18.1",
     "better-auth": "^1.6.9",

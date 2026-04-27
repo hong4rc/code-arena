@@ -75,7 +75,11 @@ const importRules = {
 
 const unicornRules = {
   ...unicorn.configs.recommended.rules,
-  "unicorn/filename-case": "off",
+  "unicorn/filename-case": ["error", {
+    cases: { kebabCase: true, pascalCase: true },
+    // Next.js dynamic-segment files like [id]/page.tsx contain brackets — exempt them.
+    ignore: [String.raw`^\[`],
+  }],
   "unicorn/prevent-abbreviations": "off",
   "unicorn/no-null": "off",
   "unicorn/no-array-callback-reference": "off",

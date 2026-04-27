@@ -1,18 +1,11 @@
-import { and, bots, desc, eq, getDb, ratings, seasons } from "@arena/db";
+import { composition } from "@/composition";
 
 export const dynamic = "force-dynamic";
 
 export default async function LeaderboardPage() {
-  const db = getDb();
-  const [season] = await db.select().from(seasons).where(eq(seasons.isActive, true)).limit(1);
+  const season = await composition.repos.seasons.findActive();
   if (!season) return <p>No active season.</p>;
-  const rows = await db
-    .select({ botId: ratings.botId, name: bots.name, rating: ratings.rating, rd: ratings.rd, games: ratings.games })
-    .from(ratings)
-    .innerJoin(bots, eq(bots.id, ratings.botId))
-    .where(and(eq(ratings.seasonId, season.id)))
-    .orderBy(desc(ratings.rating))
-    .limit(100);
+  const rows = await composition.repos.ratings.leaderboard(season.id, 100);
 
   return (
     <div>

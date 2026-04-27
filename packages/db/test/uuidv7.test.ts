@@ -14,10 +14,12 @@ describe("uuidv7", () => {
     expect("89ab").toContain(id.charAt(19));       // variant 10xx → 8/9/a/b
   });
 
-  test("ids generated within the same ms still increase or stay equal", () => {
+  test("two ids generated back-to-back are distinct", () => {
+    // Within the same millisecond UUIDv7 makes no monotonicity guarantee
+    // (the random tail bits decide order); we only require uniqueness.
     const a = uuidv7();
     const b = uuidv7();
-    expect(a.localeCompare(b)).toBeLessThanOrEqual(0);
+    expect(a).not.toBe(b);
   });
 
   test("ids generated 5ms apart are strictly ordered", async () => {
