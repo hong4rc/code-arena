@@ -67,17 +67,21 @@ DATABASE_URL=postgresql://USER:PASS@ep-xxx.us-east-2.aws.neon.tech/code_arena?ss
    - Save and skip the rest.
 3. Sidebar → **APIs & Services → Credentials → + CREATE CREDENTIALS → OAuth client ID**.
 4. Application type: **Web application**. Name: `Code Arena web`.
-5. **Authorized redirect URIs** — add **two**:
+5. **Authorized JavaScript origins** → click **+ ADD URI** twice:
+   - `http://localhost:3000`
+   - `https://REPLACE-WITH-RENDER-URL.onrender.com`
+   *(no trailing slash, no path)*
+6. **Authorized redirect URIs** → click **+ ADD URI** twice:
    - `http://localhost:3000/api/auth/callback/google`
    - `https://REPLACE-WITH-RENDER-URL.onrender.com/api/auth/callback/google`
-6. **CREATE** → popup shows Client ID + Client secret.
-7. Paste both into `apps/web/.env`:
+7. **CREATE** → popup shows Client ID + Client secret.
+8. Paste both into `apps/web/.env`:
    ```
    GOOGLE_CLIENT_ID=<paste>
    GOOGLE_CLIENT_SECRET=<paste>
    ```
 
-(You'll come back to fix the Render URL after Step 5.)
+(You'll come back to fix the Render URL placeholders after Step 5.)
 
 ---
 
@@ -92,7 +96,11 @@ DATABASE_URL=postgresql://USER:PASS@ep-xxx.us-east-2.aws.neon.tech/code_arena?ss
    sed -i '' 's|https://REPLACE-WITH-RENDER-URL.onrender.com|https://code-arena-xxxx.onrender.com|g' apps/web/.env
    ```
    *(macOS — for Linux drop the `''` after `-i`)*
-6. **Back to Google Cloud** → Credentials → Code Arena web → fix the second redirect URI to match the real Render URL → **SAVE**.
+6. **Back to Google Cloud** → Credentials → Code Arena web. Replace the `REPLACE-WITH-RENDER-URL` placeholder in **both** fields with your real Render hostname:
+   - **Authorized JavaScript origins** → second entry
+   - **Authorized redirect URIs** → second entry
+
+   Click **SAVE**.
 
 ---
 
