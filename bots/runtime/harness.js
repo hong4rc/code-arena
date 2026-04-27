@@ -184,6 +184,80 @@ globalThis.lowHp = function lowHp(obs, ratio = 0.5) {
   return globalThis.hpFraction(obs) < ratio;
 };
 
+/**
+ * Will an attack in this direction kill the target outright?
+ * Returns the target cell if yes, otherwise null.
+ * (Approximate: assumes WEAPON adds 5 attack and ignores SHIELD on the target,
+ * since you can't see their inventory. Good enough for finishing-blow logic.)
+ */
+globalThis.canKill = function canKill(obs, dir) {
+  const target = globalThis.canAttack(obs, dir);
+  if (!target) return null;
+  const damage = obs.self.attack + (globalThis.hasItem(obs, "WEAPON") ? 5 : 0);
+  return (target.hp ?? 100) <= damage ? target : null;
+};
+
+/**
+ * The single best ATTACK direction right now.
+ * Prefers a one-shot kill; otherwise picks the lowest-HP target in range; else null.
+ */
+globalThis.bestAttackDir = function bestAttackDir(obs) {
+  let kill = null;
+  let weakest = null;
+  let weakestHp = Infinity;
+  for (const dir of globalThis.DIRS) {
+    const k = globalThis.canKill(obs, dir);
+    if (k) { kill = dir; break; }
+    const t = globalThis.canAttack(obs, dir);
+    if (t && (t.hp ?? 100) < weakestHp) {
+      weakestHp = t.hp ?? 100;
+      weakest = dir;
+    }
+  }
+  return kill ?? weakest;
+};
+
+/**
+ * Try to MOVE in `dir`. If that cell is blocked by a wall or bot, fall back
+ * to a perpendicular direction. If all options are blocked, returns null.
+ *
+ * Returns a direction string, NOT an action object — the caller wraps it:
+ *   const d = smartMove(obs, dirTo(target.dx, target.dy));
+ *   return d ? { type: "MOVE", dir: d } : { type: "WAIT" };
+ */
+globalThis.smartMove = function smartMove(obs, dir) {
+  if (globalThis.canMove(obs, dir)) return dir;
+  const perp = dir === "UP" || dir === "DOWN" ? ["LEFT", "RIGHT"] : ["UP", "DOWN"];
+  for (const d of perp) if (globalThis.canMove(obs, d)) return d;
+  return null;
+};
+
+/**
+ * Cells along a straight line in one direction, up to `range` (default = vision radius).
+ * Stops at the first wall. Useful for line-of-sight reasoning.
+ *   scanLine(obs, "RIGHT")  →  [cell+1, cell+2]   (5x5 view → range 2)
+ */
+globalThis.scanLine = function scanLine(obs, dir, range) {
+  const r = (obs.view.length - 1) >> 1;
+  const max = range ?? r;
+  const delta = { UP: [0, -1], DOWN: [0, 1], LEFT: [-1, 0], RIGHT: [1, 0] }[dir];
+  const out = [];
+  for (let step = 1; step <= max; step++) {
+    const cell = obs.view[r + delta[1] * step]?.[r + delta[0] * step];
+    if (!cell || cell.kind === "wall") break;
+    out.push({ step, ...cell });
+  }
+  return out;
+};
+
+/** Rotate a direction by `n` quarter-turns clockwise (negative = counter-clockwise). */
+globalThis.turn = function turn(dir, n = 1) {
+  const order = ["UP", "RIGHT", "DOWN", "LEFT"];
+  const i = order.indexOf(dir);
+  if (i < 0) return dir;
+  return order[((i + n) % 4 + 4) % 4];
+};
+
 /** Direction with the fewest visible enemies (best escape route). */
 globalThis.safestDir = function safestDir(obs) {
   const enemies = globalThis.visibleBots(obs);

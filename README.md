@@ -44,6 +44,22 @@ bun run typecheck
 bun run lint
 ```
 
+## Writing bots
+
+Single file. No imports. Default-export `decide(observation, state)`.
+Full helper reference: **[docs/HELPERS.md](./docs/HELPERS.md)**.
+
+```js
+export default function decide(obs) {
+  const dir = bestAttackDir(obs);
+  if (dir) return { type: "ATTACK", dir };
+  if (canPickup(obs)) return { type: "PICKUP" };
+  const item = nearestItem(obs);
+  if (item) return { type: "MOVE", dir: dirTo(item.dx, item.dy) };
+  return { type: "MOVE", dir: safestDir(obs) };
+}
+```
+
 ## Deploy
 
 Render free tier + Supabase free tier, no credit card required. See [DEPLOY.md](./DEPLOY.md).
