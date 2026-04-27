@@ -48,5 +48,8 @@ ENV NODE_ENV=production
 ENV PORT=3000
 EXPOSE 3000
 
+# Run from the Next app dir so `next()` finds the `.next` build directory
+# (default `dir` is process.cwd(), and our build output is here).
+WORKDIR /app/apps/web
 ENTRYPOINT ["/usr/bin/tini", "--"]
-CMD ["bun", "/app/apps/web/server.ts"]
+CMD ["bun", "server.ts"]
