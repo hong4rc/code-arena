@@ -16,16 +16,20 @@ import { runMatch, spawnSandboxedBot, type BotEntry } from "@arena/runner";
 import { INITIAL_RATING, updateMatchRatings } from "@arena/rating";
 import { publishTick, endChannel } from "./broadcaster.ts";
 
-const SDK_PATHS = ["bots/samples/_sdk.js", "../bots/samples/_sdk.js", "../../bots/samples/_sdk.js"];
+const HARNESS_PATHS = [
+  "bots/runtime/harness.js",
+  "../bots/runtime/harness.js",
+  "../../bots/runtime/harness.js",
+];
 
-function findSdk(): string {
+function findHarness(): string {
   const cwd = process.cwd();
-  for (const p of SDK_PATHS) {
+  for (const p of HARNESS_PATHS) {
     const abs = join(cwd, p);
     if (existsSync(abs)) return abs;
   }
-  // Last resort: container path
-  return "/app/bots/samples/_sdk.js";
+  // Container path inside the Docker image.
+  return "/app/bots/runtime/harness.js";
 }
 
 interface PreparedBot {
@@ -47,8 +51,9 @@ async function prepareBot(botId: string): Promise<PreparedBot | null> {
   if (!version || !version.isRunnable) return null;
 
   const dir = mkdtempSync(join(tmpdir(), `arena-bot-${botId.slice(0, 8)}-`));
-  const sdkSrc = findSdk();
-  if (existsSync(sdkSrc)) copyFileSync(sdkSrc, join(dir, "_sdk.js"));
+  const harnessSrc = findHarness();
+  const harnessPath = join(dir, "harness.js");
+  if (existsSync(harnessSrc)) copyFileSync(harnessSrc, harnessPath);
   const scriptPath = join(dir, "bot.js");
   writeFileSync(scriptPath, version.code, "utf8");
 
@@ -56,7 +61,7 @@ async function prepareBot(botId: string): Promise<PreparedBot | null> {
     botId,
     botVersionId: version.id,
     sandboxDir: dir,
-    botEntry: { id: botId, scriptPath, sandboxDir: dir },
+    botEntry: { id: botId, scriptPath, harnessPath, sandboxDir: dir },
     cleanup: () => rmSync(dir, { recursive: true, force: true }),
   };
 }

@@ -10,26 +10,13 @@ import { mergeConfig, type Observation } from "@arena/engine";
 
 const MAX_BYTES = 256 * 1024;
 
-const FORBIDDEN_NAMES = new Set([
-  "fs", "node:fs", "node:fs/promises",
-  "child_process", "node:child_process",
-  "net", "node:net",
-  "http", "node:http", "https", "node:https",
-  "worker_threads", "node:worker_threads",
-  "cluster", "node:cluster",
-  "dgram", "node:dgram",
-  "vm", "node:vm",
-  "process", "node:process",
-  "os", "node:os",
-  "dns", "node:dns",
-]);
-
 const FORBIDDEN_GLOBALS = new Set([
   "fetch", "XMLHttpRequest", "WebSocket", "EventSource",
-  "Bun",
+  "Bun", "process", "require",
 ]);
 
-const ALLOWED_RELATIVE = ["./_sdk.js", "../_sdk.js"];
+// Single-file bots: NO imports allowed at all. Helpers are injected as globals
+// by the runtime harness (see bots/runtime/harness.js).
 
 export interface ValidationIssue {
   level: "error" | "warning";
@@ -65,18 +52,14 @@ export function validateStatic(code: string): ValidationResult {
 
   walkSimple(ast, {
     ImportDeclaration(node) {
-      const src = (node as unknown as { source: { value: string }; loc?: { start: { line: number } } }).source.value;
+      const src = (node as unknown as { source: { value: string } }).source.value;
       const line = (node as unknown as { loc?: { start: { line: number } } }).loc?.start.line;
-      if (FORBIDDEN_NAMES.has(src)) {
-        issues.push({ level: "error", code: "forbidden-import", message: `Import of '${src}' is not allowed`, ...(line !== undefined ? { line } : {}) });
-      } else if (src.startsWith(".")) {
-        if (!ALLOWED_RELATIVE.includes(src)) {
-          issues.push({ level: "error", code: "forbidden-relative-import", message: `Relative import '${src}' is not allowed (use './_sdk.js' only)`, ...(line !== undefined ? { line } : {}) });
-        }
-      } else if (!src.startsWith("@arena/")) {
-        // Bare imports of non-@arena packages: reject.
-        issues.push({ level: "error", code: "forbidden-import", message: `Import of '${src}' is not allowed`, ...(line !== undefined ? { line } : {}) });
-      }
+      issues.push({
+        level: "error",
+        code: "no-imports",
+        message: `Bots are single-file with no imports. Found: '${src}'. Helpers like adjacent, nearestBot, dirTo are available as globals.`,
+        ...(line !== undefined ? { line } : {}),
+      });
     },
     CallExpression(node) {
       const callee = (node as unknown as { callee: { type: string; name?: string } }).callee;
@@ -108,8 +91,8 @@ export function validateStatic(code: string): ValidationResult {
 }
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-/** Path to sdk file shipped under bots/samples/_sdk.js. Adjust if validating elsewhere. */
-const SDK_PATH_FROM_REPO_ROOT = "bots/samples/_sdk.js";
+/** Path to runtime harness shipped under bots/runtime/harness.js. */
+const HARNESS_PATH_FROM_REPO_ROOT = "bots/runtime/harness.js";
 
 export interface SmokeRunResult extends ValidationResult {
   responded: boolean;
@@ -117,21 +100,21 @@ export interface SmokeRunResult extends ValidationResult {
 }
 
 /** Boot the bot, hand it one canned observation, expect a valid action within timeoutMs. */
-export async function smokeRun(code: string, opts: { timeoutMs?: number; sdkPath?: string } = {}): Promise<SmokeRunResult> {
+export async function smokeRun(code: string, opts: { timeoutMs?: number; harnessPath?: string } = {}): Promise<SmokeRunResult> {
   const issues: ValidationIssue[] = [];
   const dir = mkdtempSync(join(tmpdir(), "arena-bot-"));
   try {
-    // Resolve SDK file. In tests we point at the repo's bots/samples/_sdk.js.
-    const sdkPath = opts.sdkPath ?? findSdk();
-    if (!sdkPath) {
-      issues.push({ level: "error", code: "sdk-missing", message: "SDK file not found" });
+    const harnessPath = opts.harnessPath ?? findHarness();
+    if (!harnessPath) {
+      issues.push({ level: "error", code: "harness-missing", message: "Runtime harness not found" });
       return { ok: false, issues, responded: false };
     }
-    copyFileSync(sdkPath, join(dir, "_sdk.js"));
+    const localHarness = join(dir, "harness.js");
+    copyFileSync(harnessPath, localHarness);
     const botPath = join(dir, "bot.js");
     writeFileSync(botPath, code, "utf8");
 
-    const bp = spawnBot({ botId: "smoke", scriptPath: botPath });
+    const bp = spawnBot({ botId: "smoke", scriptPath: botPath, harnessPath: localHarness });
     const config = mergeConfig({ width: 5, height: 5 });
     const obs: Observation = {
       tick: 0,
@@ -160,11 +143,10 @@ export async function smokeRun(code: string, opts: { timeoutMs?: number; sdkPath
   }
 }
 
-function findSdk(): string | undefined {
-  // Walk up from this file looking for the SDK.
+function findHarness(): string | undefined {
   let cur = HERE;
   for (let i = 0; i < 8; i++) {
-    const candidate = join(cur, SDK_PATH_FROM_REPO_ROOT);
+    const candidate = join(cur, HARNESS_PATH_FROM_REPO_ROOT);
     if (existsSync(candidate)) return candidate;
     const next = dirname(cur);
     if (next === cur) break;

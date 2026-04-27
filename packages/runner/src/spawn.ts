@@ -14,13 +14,15 @@ export interface BotProcess {
 export interface SpawnOptions {
   botId: string;
   scriptPath: string;
+  /** Path to harness.js. Required when scriptPath is set; ignored when rawCmd is set. */
+  harnessPath?: string;
   cwd?: string | undefined;
-  /** If set, run this exact command instead of `bun <scriptPath>` (used by nsjail wrapper). */
+  /** If set, run this exact command instead of `bun <harness> <bot>` (used by nsjail wrapper). */
   rawCmd?: string[];
 }
 
-export function spawnBot({ botId, scriptPath, cwd, rawCmd }: SpawnOptions): BotProcess {
-  const cmd = rawCmd ?? ["bun", scriptPath];
+export function spawnBot({ botId, scriptPath, harnessPath, cwd, rawCmd }: SpawnOptions): BotProcess {
+  const cmd = rawCmd ?? (harnessPath ? ["bun", harnessPath, scriptPath] : ["bun", scriptPath]);
   const proc = Bun.spawn({
     cmd,
     stdin: "pipe",

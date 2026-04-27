@@ -1,33 +1,22 @@
-// hunter-bot — chases and attacks the lowest-HP visible enemy.
-import { runBot, findNearest, moveToward, adjacent, DIRS } from "./_sdk.js";
-
-function decide(observation, _state) {
-  // 1. Attack any adjacent enemy immediately.
+// hunter-bot — stalks the lowest-HP visible enemy.
+export default function decide(obs) {
+  // 1. Adjacent enemy? Attack.
   for (const dir of DIRS) {
-    const c = adjacent(observation, dir);
-    if (c?.kind === "bot") return { type: "ATTACK", dir };
-  }
-
-  // 2. Find lowest-HP visible enemy.
-  const view = observation.view;
-  const r = Math.floor(view.length / 2);
-  let prey = null;
-  for (let dy = -r; dy <= r; dy++) {
-    for (let dx = -r; dx <= r; dx++) {
-      const cell = view[dy + r][dx + r];
-      if (cell?.kind !== "bot") continue;
-      if (!prey || (cell.hp ?? 100) < prey.hp) {
-        prey = { dx, dy, hp: cell.hp ?? 100 };
-      }
+    if (adjacent(obs, dir)?.kind === "bot") {
+      return { type: "ATTACK", dir };
     }
   }
-  if (prey) return { type: "MOVE", dir: moveToward(prey.dx, prey.dy) };
 
-  // 3. Otherwise grab nearby weapon if one exists.
-  const weapon = findNearest(observation, (c) => c.kind === "item" && c.item === "WEAPON");
-  if (weapon) return { type: "MOVE", dir: moveToward(weapon.dx, weapon.dy) };
+  // 2. Find the weakest visible enemy and chase them.
+  const enemies = visibleBots(obs);
+  if (enemies.length > 0) {
+    const prey = enemies.reduce((a, b) => (a.hp <= b.hp ? a : b));
+    return { type: "MOVE", dir: dirTo(prey.dx, prey.dy) };
+  }
+
+  // 3. No enemies in sight — go grab a weapon if we can find one.
+  const weapon = nearestItem(obs, "WEAPON");
+  if (weapon) return { type: "MOVE", dir: dirTo(weapon.dx, weapon.dy) };
 
   return { type: "WAIT" };
 }
-
-runBot(decide);

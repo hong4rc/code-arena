@@ -51,7 +51,7 @@ export function spawnSandboxedBot(opts: SpawnOptions & { sandboxDir?: string }):
     "--mount", "tmpfs:/tmp:tmpfs:size=4194304",
     "--cwd", "/sandbox",
     "--",
-    "/usr/bin/node", "/sandbox/bot.js",
+    "/usr/bin/node", "/sandbox/harness.js", "/sandbox/bot.js",
   ];
 
   // Use spawnBot's machinery but with a different command. Easiest: build a

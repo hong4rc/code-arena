@@ -240,7 +240,7 @@ Render runs your container in a Linux namespace. The Dockerfile builds `nsjail` 
 **Reality check**: Render's host kernel may or may not allow the unprivileged user-namespace tricks nsjail uses. The runner code (`packages/runner/src/nsjail.ts`) checks if `/usr/local/bin/nsjail` is present and falls back to a plain `bun <bot.js>` subprocess if not.
 
 In the fallback case (no nsjail), you still have:
-- AST denylist at upload (rejects `fs`, `child_process`, `net`, `eval`, dynamic imports, third-party packages).
+- AST denylist at upload (rejects all imports, `eval`, `Function`, dynamic imports — bots are single-file).
 - Per-tick wall timeout (kills runaway bots after 300 ms).
 - Subprocess isolation (no shared state with the main server).
 - Bun heap cap on the bot process (set via `--max-old-space-size`).

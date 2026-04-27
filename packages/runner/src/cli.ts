@@ -34,9 +34,11 @@ if (args.bots.length < 2) {
   process.exit(2);
 }
 
+const harnessPath = resolve("bots/runtime/harness.js");
 const bots = args.bots.map((p, i) => ({
   id: `bot${i + 1}-${p.split("/").pop()?.replace(/\.[jt]s$/, "") ?? "x"}`,
   scriptPath: resolve(p),
+  harnessPath,
 }));
 
 const config: Record<string, number> = {};

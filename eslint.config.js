@@ -57,10 +57,33 @@ export default [
     ],
   },
   js.configs.recommended,
-  // JS bots and SDK
+  // Bot harness (full Node access).
   {
-    files: ["bots/**/*.js"],
+    files: ["bots/runtime/**/*.js"],
     languageOptions: { globals: runtimeGlobals, ecmaVersion: 2022, sourceType: "module" },
+    rules: { ...baseRules, "no-console": "off" },
+  },
+  // Sample bots: single-file, reference helpers as globals (injected by harness).
+  {
+    files: ["bots/samples/**/*.js"],
+    languageOptions: {
+      globals: {
+        ...runtimeGlobals,
+        DIRS: "readonly",
+        adjacent: "readonly",
+        here: "readonly",
+        nearest: "readonly",
+        nearestBot: "readonly",
+        nearestItem: "readonly",
+        visibleBots: "readonly",
+        visibleItems: "readonly",
+        dirTo: "readonly",
+        fleeFrom: "readonly",
+        pickRandom: "readonly",
+      },
+      ecmaVersion: 2022,
+      sourceType: "module",
+    },
     rules: { ...baseRules, "no-console": "off" },
   },
   // packages/* — strict type-checked TS

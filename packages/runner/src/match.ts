@@ -14,8 +14,11 @@ import { askBot, killBot, spawnBot, type BotProcess, type SpawnOptions } from ".
 
 export interface BotEntry {
   id: string;
+  /** Path to user's bot.js (single-file, default-exports `decide`). */
   scriptPath: string;
-  /** Directory containing bot.js + _sdk.js, used by nsjail bind-mount. */
+  /** Path to runtime harness.js that loads the bot and runs the I/O loop. */
+  harnessPath: string;
+  /** Directory containing bot.js + harness.js, used by nsjail bind-mount. */
   sandboxDir?: string;
 }
 
@@ -71,7 +74,15 @@ export async function runMatch(opts: RunMatchOptions): Promise<MatchReplay> {
   const procs: Map<string, BotProcess> = new Map();
   const spawnFn: BotSpawn = opts.spawn ?? ((o) => spawnBot(o));
   for (const b of opts.bots) {
-    procs.set(b.id, spawnFn({ botId: b.id, scriptPath: b.scriptPath, ...(b.sandboxDir ? { sandboxDir: b.sandboxDir } : {}) }));
+    procs.set(
+      b.id,
+      spawnFn({
+        botId: b.id,
+        scriptPath: b.scriptPath,
+        harnessPath: b.harnessPath,
+        ...(b.sandboxDir ? { sandboxDir: b.sandboxDir } : {}),
+      }),
+    );
   }
 
   const ticks: TickReplay[] = [];

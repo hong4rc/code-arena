@@ -1,36 +1,28 @@
-// defensive-bot — heals at low HP, flees from enemies, picks up items if safe.
-import { runBot, findNearest, moveToward, adjacent, DIRS } from "./_sdk.js";
-
-function decide(observation, _state) {
-  const { self } = observation;
-
-  // 1. If HP low and we have HEAL, use it.
-  if (self.hp < 60 && self.inventory.includes("HEAL")) {
+// defensive-bot — heals at low HP, runs from enemies, grabs items if safe.
+export default function decide(obs) {
+  // 1. Low HP? Heal if we can.
+  if (obs.self.hp < 60 && obs.self.inventory.includes("HEAL")) {
     return { type: "USE", item: "HEAL" };
   }
 
-  // 2. If an enemy is adjacent, retreat in opposite direction.
+  // 2. Enemy next to us? Step away.
   for (const dir of DIRS) {
-    const c = adjacent(observation, dir);
-    if (c?.kind === "bot") {
-      const opposite = { UP: "DOWN", DOWN: "UP", LEFT: "RIGHT", RIGHT: "LEFT" }[dir];
-      return { type: "MOVE", dir: opposite };
+    if (adjacent(obs, dir)?.kind === "bot") {
+      const opposite = { UP: "DOWN", DOWN: "UP", LEFT: "RIGHT", RIGHT: "LEFT" };
+      return { type: "MOVE", dir: opposite[dir] };
     }
   }
 
-  // 3. If standing on item, grab it.
-  const r = Math.floor(observation.view.length / 2);
-  if (observation.view[r][r]?.kind === "item") return { type: "PICKUP" };
+  // 3. Standing on an item? Grab it.
+  if (here(obs)?.kind === "item") return { type: "PICKUP" };
 
-  // 4. Path to nearest item.
-  const item = findNearest(observation, (c) => c.kind === "item");
-  if (item) return { type: "MOVE", dir: moveToward(item.dx, item.dy) };
+  // 4. Walk toward the closest item.
+  const item = nearestItem(obs);
+  if (item) return { type: "MOVE", dir: dirTo(item.dx, item.dy) };
 
-  // 5. Flee from any visible enemy.
-  const enemy = findNearest(observation, (c) => c.kind === "bot");
-  if (enemy) return { type: "MOVE", dir: moveToward(-enemy.dx, -enemy.dy) };
+  // 5. Otherwise flee from the nearest visible enemy.
+  const enemy = nearestBot(obs);
+  if (enemy) return { type: "MOVE", dir: fleeFrom(enemy.dx, enemy.dy) };
 
   return { type: "WAIT" };
 }
-
-runBot(decide);

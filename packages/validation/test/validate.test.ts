@@ -2,53 +2,49 @@ import { describe, expect, test } from "bun:test";
 import { validateStatic, smokeRun } from "../src/index.ts";
 
 const GOOD = `
-import { runBot } from "./_sdk.js";
-runBot(() => ({ type: "WAIT" }));
+export default function decide() {
+  return { type: "WAIT" };
+}
 `;
 
 describe("validateStatic", () => {
-  test("accepts a clean bot", () => {
+  test("accepts a clean single-file bot", () => {
     const r = validateStatic(GOOD);
     expect(r.ok).toBe(true);
   });
 
-  test("rejects fs import", () => {
-    const r = validateStatic(`import fs from "node:fs"; export const x = 1;`);
+  test("rejects any import (single-file rule)", () => {
+    const r = validateStatic(`import fs from "node:fs"; export default () => ({type:"WAIT"});`);
     expect(r.ok).toBe(false);
-    expect(r.issues.some((i) => i.code === "forbidden-import")).toBe(true);
+    expect(r.issues.some((i) => i.code === "no-imports")).toBe(true);
   });
 
-  test("rejects child_process import", () => {
-    const r = validateStatic(`import cp from "child_process";`);
+  test("rejects relative imports too", () => {
+    const r = validateStatic(`import x from "./other.js"; export default () => ({type:"WAIT"});`);
     expect(r.ok).toBe(false);
-    expect(r.issues.some((i) => i.code === "forbidden-import")).toBe(true);
+    expect(r.issues.some((i) => i.code === "no-imports")).toBe(true);
   });
 
   test("rejects bare third-party import", () => {
-    const r = validateStatic(`import _ from "lodash";`);
+    const r = validateStatic(`import _ from "lodash"; export default () => ({type:"WAIT"});`);
     expect(r.ok).toBe(false);
   });
 
   test("rejects eval()", () => {
-    const r = validateStatic(`eval("1+1");`);
+    const r = validateStatic(`export default () => { eval("1+1"); return {type:"WAIT"}; };`);
     expect(r.ok).toBe(false);
     expect(r.issues.some((i) => i.code === "forbidden-call")).toBe(true);
   });
 
   test("rejects new Function", () => {
-    const r = validateStatic(`const f = new Function("return 1");`);
+    const r = validateStatic(`export default () => { new Function("return 1"); return {type:"WAIT"}; };`);
     expect(r.ok).toBe(false);
   });
 
   test("rejects dynamic import()", () => {
-    const r = validateStatic(`async function f() { await import("fs"); }`);
+    const r = validateStatic(`export default async () => { await import("fs"); return {type:"WAIT"}; };`);
     expect(r.ok).toBe(false);
     expect(r.issues.some((i) => i.code === "dynamic-import")).toBe(true);
-  });
-
-  test("rejects bad relative import", () => {
-    const r = validateStatic(`import x from "./other.js";`);
-    expect(r.ok).toBe(false);
   });
 
   test("rejects parse errors", () => {
@@ -62,6 +58,11 @@ describe("validateStatic", () => {
     const r = validateStatic(huge);
     expect(r.ok).toBe(false);
   });
+
+  test("warns on referencing forbidden globals", () => {
+    const r = validateStatic(`export default () => { fetch("http://evil"); return {type:"WAIT"}; };`);
+    expect(r.issues.some((i) => i.code === "global-ref")).toBe(true);
+  });
 });
 
 describe("smokeRun", () => {
@@ -71,19 +72,30 @@ describe("smokeRun", () => {
     expect(r.responded).toBe(true);
   });
 
-  test("bot whose decide throws still produces WAIT (SDK catches)", async () => {
+  test("bot using globals (helpers) passes smoke", async () => {
     const r = await smokeRun(
-      `import { runBot } from "./_sdk.js"; runBot(() => { throw new Error("nope"); });`,
+      `export default function decide(obs) {
+        if (here(obs)?.kind === "item") return { type: "PICKUP" };
+        return { type: "MOVE", dir: pickRandom(DIRS) };
+      }`,
       { timeoutMs: 2000 },
     );
-    // SDK's try/catch around decide returns { type: "WAIT" } — that's a valid action.
+    expect(r.ok).toBe(true);
+    expect(r.responded).toBe(true);
+  });
+
+  test("bot whose decide throws still produces WAIT (harness catches)", async () => {
+    const r = await smokeRun(
+      `export default function decide() { throw new Error("nope"); }`,
+      { timeoutMs: 2000 },
+    );
     expect(r.responded).toBe(true);
     expect(r.ok).toBe(true);
   });
 
   test("infinite-loop bot times out", async () => {
     const r = await smokeRun(
-      `import { runBot } from "./_sdk.js"; runBot(() => { while(true){} });`,
+      `export default function decide() { while(true){} }`,
       { timeoutMs: 500 },
     );
     expect(r.ok).toBe(false);
