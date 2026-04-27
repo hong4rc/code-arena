@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1.7
-# Bot Arena — single-image deploy: Next.js + WebSocket + scheduler + match runner.
+# Code Arena — single-image deploy: Next.js + WebSocket + scheduler + match runner.
 # Includes nsjail for sandboxing user bot subprocesses.
 FROM oven/bun:1.1-debian AS base
 
@@ -20,11 +20,10 @@ WORKDIR /app
 # Copy workspace manifests first for cache friendliness.
 COPY package.json bun.lockb* ./
 COPY apps/web/package.json apps/web/
-COPY packages/engine/package.json packages/engine/
-COPY packages/runner/package.json packages/runner/
+COPY packages/domain/package.json packages/domain/
+COPY packages/application/package.json packages/application/
+COPY packages/adapters/package.json packages/adapters/
 COPY packages/db/package.json packages/db/
-COPY packages/validation/package.json packages/validation/
-COPY packages/rating/package.json packages/rating/
 COPY tsconfig.json eslint.config.js ./
 
 RUN bun install --frozen-lockfile
