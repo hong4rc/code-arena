@@ -14,6 +14,10 @@ const nextConfig = {
   reactStrictMode: true,
   eslint: { ignoreDuringBuilds: true },
   typescript: { ignoreBuildErrors: false },
+  // Force single-threaded build on tiny hosts (Render free 512 MB).
+  // Each Next build worker eats ~150 MB; without this it spawns one per CPU
+  // and OOMs immediately.
+  experimental: { cpus: 1, workerThreads: false },
 };
 
 export default nextConfig;

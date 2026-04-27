@@ -26,9 +26,10 @@ COPY apps ./apps
 COPY bots ./bots
 
 # Cap V8 heap so Next.js build worker doesn't get OOM-killed on small hosts.
+# next.config.mjs also forces single-threaded build (cpus: 1, no workers).
 WORKDIR /app/apps/web
 ENV NEXT_TELEMETRY_DISABLED=1
-ENV NODE_OPTIONS="--max-old-space-size=400"
+ENV NODE_OPTIONS="--max-old-space-size=350"
 RUN bun run build
 
 # --- Runtime stage ---
