@@ -1,0 +1,33 @@
+name: Keep-alive (external)
+
+# GitHub Actions has a 5-minute minimum for scheduled events, but a single
+# run can do as many requests as it likes. We schedule every 5 min and fire
+# 10 pings spaced 30s apart — net effect = a ping every 30s from outside.
+#
+# Free for public repos. Disable by deleting this file or setting the secret
+# KEEPALIVE_DISABLED to anything truthy.
+on:
+  schedule:
+    - cron: "*/5 * * * *"     # every 5 minutes
+  workflow_dispatch: {}        # manual trigger from the UI
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Ping every 30 seconds for ~5 minutes
+        env:
+          URL: ${{ vars.KEEPALIVE_URL || 'https://code-arcna.onrender.com/api/health' }}
+        run: |
+          if [ -n "${{ secrets.KEEPALIVE_DISABLED }}" ]; then
+            echo "KEEPALIVE_DISABLED set — skipping"
+            exit 0
+          fi
+          for i in $(seq 1 10); do
+            code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 "$URL")
+            ts=$(date -u +%H:%M:%S)
+            echo "[$ts] $URL → $code"
+            # 30s between pings; on the last iteration just exit immediately
+            if [ "$i" -lt 10 ]; then sleep 30; fi
+          done
