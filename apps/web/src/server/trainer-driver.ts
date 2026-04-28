@@ -52,7 +52,16 @@ interface TraineeState {
   totalRounds: number;
   totalMatches: number;
   totalWins: number;
+  // Hourly-report deltas — reset whenever a report fires.
+  hourMatches: number;
+  hourWins: number;
+  hourPromotions: number;
+  hourBaselineStart: number;
+  hourSigmaStart: number;
 }
+
+const REPORT_INTERVAL_MS = Number(process.env.TRAINER_REPORT_INTERVAL_MS ?? 60 * 60 * 1000);
+let lastReportAt = Date.now();
 
 let running = false;
 let stopFlag = false;
@@ -136,6 +145,7 @@ async function runOneIteration(): Promise<void> {
     }
   }
   roundsSinceReload += 1;
+  maybeEmitHourlyReport();
 }
 
 async function loadTargets(): Promise<TraineeState[]> {
@@ -168,6 +178,11 @@ async function loadTargets(): Promise<TraineeState[]> {
       totalRounds: 0,
       totalMatches: 0,
       totalWins: 0,
+      hourMatches: 0,
+      hourWins: 0,
+      hourPromotions: 0,
+      hourBaselineStart: 99,
+      hourSigmaStart: cfg.sigma,
     });
   }
   return states;
@@ -199,8 +214,13 @@ async function trainOneRound(state: TraineeState, opponents: OpponentBot[]): Pro
     const { reward, won } = await runOneMatch(state, opponents);
     state.candidateScores.push(reward);
     state.totalMatches += 1;
+    state.hourMatches += 1;
     total += 1;
-    if (won) { wins += 1; state.totalWins += 1; }
+    if (won) {
+      wins += 1;
+      state.totalWins += 1;
+      state.hourWins += 1;
+    }
 
     if (state.candidateScores.length >= cfg.batch) {
       const avg = state.candidateScores.reduce((a, b) => a + b, 0) / state.candidateScores.length;
@@ -208,6 +228,7 @@ async function trainOneRound(state: TraineeState, opponents: OpponentBot[]): Pro
         state.champion = state.candidate;
         state.champBaseline = avg;
         state.sigma = Math.max(SIGMA_MIN, state.sigma * SIGMA_DECAY);
+        state.hourPromotions += 1;
       } else {
         state.sigma = Math.min(cfg.sigmaMax, state.sigma * SIGMA_GROW);
       }
@@ -225,6 +246,32 @@ async function trainOneRound(state: TraineeState, opponents: OpponentBot[]): Pro
     `match=${state.totalMatches} win=${wins}/${total} (${((wins / total) * 100).toFixed(0)}%) ` +
     `champion=${state.champBaseline.toFixed(2)} σ=${state.sigma.toFixed(3)} → bot_params v${version}`,
   );
+}
+
+function maybeEmitHourlyReport(): void {
+  const elapsedMs = Date.now() - lastReportAt;
+  if (elapsedMs < REPORT_INTERVAL_MS) return;
+  lastReportAt = Date.now();
+  if (trainees.length === 0) return;
+
+  const minutes = (elapsedMs / 60000).toFixed(0);
+  console.log(`\n[trainer] ── hourly report (last ${minutes} min) ─────────────────────`);
+  console.log(`[trainer]   ${"bot".padEnd(14)} ${"matches".padStart(8)} ${"wins".padStart(6)} ${"win%".padStart(6)}  ${"promotions".padStart(11)}  ${"baseline".padStart(20)}  ${"σ".padStart(16)}`);
+  for (const s of trainees) {
+    const winPct = s.hourMatches === 0 ? 0 : (s.hourWins / s.hourMatches) * 100;
+    const baselineDelta = s.hourBaselineStart === 99 ? `→ ${s.champBaseline.toFixed(2)}` : `${s.hourBaselineStart.toFixed(2)} → ${s.champBaseline.toFixed(2)}`;
+    const sigmaDelta = `${s.hourSigmaStart.toFixed(3)} → ${s.sigma.toFixed(3)}`;
+    console.log(
+      `[trainer]   ${s.name.padEnd(14)} ${String(s.hourMatches).padStart(8)} ${String(s.hourWins).padStart(6)} ${winPct.toFixed(0).padStart(5)}%  ${String(s.hourPromotions).padStart(11)}  ${baselineDelta.padStart(20)}  ${sigmaDelta.padStart(16)}`,
+    );
+    // Reset hour counters but keep baseline/sigma snapshots up-to-date.
+    s.hourMatches = 0;
+    s.hourWins = 0;
+    s.hourPromotions = 0;
+    s.hourBaselineStart = s.champBaseline;
+    s.hourSigmaStart = s.sigma;
+  }
+  console.log(`[trainer] ────────────────────────────────────────────────────────────\n`);
 }
 
 async function runOneMatch(state: TraineeState, opponents: OpponentBot[]): Promise<{ reward: number; won: boolean }> {
