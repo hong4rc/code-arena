@@ -12,6 +12,7 @@ import {
   matchParticipants,
   matchReplays,
   matches,
+  sql,
   type Db,
 } from "@arena/db";
 import type { TickReplay } from "@arena/domain";
@@ -34,6 +35,25 @@ export class DrizzleMatchRepo implements MatchRepo {
   async recent(limit: number): Promise<Match[]> {
     const rows = await this.db.select().from(matches).orderBy(desc(matches.createdAt)).limit(limit);
     return rows.map((r) => this.toMatch(r));
+  }
+
+  async statsByBot(botId: string) {
+    const [row] = await this.db
+      .select({
+        matches: sql<number>`count(*)::int`,
+        wins: sql<number>`count(*) filter (where ${matchParticipants.placement} = 1)::int`,
+        avgPlacement: sql<number | null>`avg(${matchParticipants.placement})::float`,
+        totalDamage: sql<number>`coalesce(sum(${matchParticipants.damageDealt}), 0)::int`,
+      })
+      .from(matchParticipants)
+      .innerJoin(matches, eq(matches.id, matchParticipants.matchId))
+      .where(and(eq(matchParticipants.botId, botId), eq(matches.status, "done")));
+    return {
+      matches: row?.matches ?? 0,
+      wins: row?.wins ?? 0,
+      avgPlacement: row?.avgPlacement ?? null,
+      totalDamage: row?.totalDamage ?? 0,
+    };
   }
 
   async recentByBot(botId: string, limit: number) {

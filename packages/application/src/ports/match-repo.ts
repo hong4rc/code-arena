@@ -33,6 +33,8 @@ export interface MatchRepo {
   recent(limit: number): Promise<Match[]>;
   /** Most recent matches a given bot participated in (any version). */
   recentByBot(botId: string, limit: number): Promise<Array<Match & { placement: number | null; ratingDelta: number | null }>>;
+  /** Aggregate stats across every finished match a bot participated in. */
+  statsByBot(botId: string): Promise<{ matches: number; wins: number; avgPlacement: number | null; totalDamage: number }>;
   create(input: { seasonId: string | null; kind: MatchKind; seed: number }): Promise<Match>;
   markRunning(id: string, startedAt: Date): Promise<void>;
   markDone(id: string, finishedAt: Date): Promise<void>;
