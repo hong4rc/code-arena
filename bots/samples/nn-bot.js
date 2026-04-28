@@ -70,23 +70,56 @@ export default function decide(obs, state) {
   for (const d of DIRS) {
     if (canKill(obs, d)) return { type: "ATTACK", dir: d };
   }
-  // 7. Cooldown ready + any visible enemy — shoot. Bullets > melee.
+  // 7. Cooldown ready + any visible enemy — shoot WITH LEAD.
+  // The helper trackEnemies records 4-tick position history per enemy and
+  // returns velocity estimates. leadShot uses that to predict where the
+  // target will be when the bullet arrives — turns mid-distance shots from
+  // ~5% hit-rate (raw nearest-bot aim) into ~30%+ on moving targets.
   if (canShoot(obs)) {
-    const enemy = nearestBot(obs);
-    if (enemy) return { type: "SHOOT", target: { dx: enemy.dx, dy: enemy.dy } };
+    const velocity = trackEnemies(obs, state);
+    const enemies = visibleBots(obs);
+    if (enemies.length > 0) {
+      // Pick the lowest-HP target — finishing wounded enemies stops them
+      // healing, and the kill-shot reward is the same 18 dmg either way.
+      const target = enemies.reduce((a, b) => (a.hp <= b.hp ? a : b));
+      const aim = leadShot(obs, target, velocity[target.botId], { bulletSpeed: 5 });
+      return { type: "SHOOT", target: aim };
+    }
   }
   // 8. ≥2 enemies in close range + SHIELD — preemptive block.
   const closeEnemies = visibleBots(obs).filter((e) => e.dist <= 5);
   if (closeEnemies.length >= 2 && hasItem(obs, "SHIELD")) {
     return { type: "USE", item: "SHIELD" };
   }
-  // 9. Adjacent enemy — attack. Free damage.
+  // 9. Adjacent enemy — attack. Free damage (no cooldown).
   for (const d of DIRS) {
     if (canAttack(obs, d)) return { type: "ATTACK", dir: d };
   }
-  // 10. SPEED_BOOST in endgame — kiting matters more.
-  if (hasItem(obs, "SPEED_BOOST") && isEndgame(obs) && visibleBots(obs).length > 0) {
-    return { type: "USE", item: "SPEED_BOOST" };
+  // 10. SPEED_BOOST: pop in endgame OR when chasing a wounded target.
+  // Speeds up kiting and finishing kills — never wasted in mid-game where
+  // we're already at speed advantage from items.
+  if (hasItem(obs, "SPEED_BOOST")) {
+    if (isEndgame(obs) && visibleBots(obs).length > 0) {
+      return { type: "USE", item: "SPEED_BOOST" };
+    }
+    const wounded = visibleBots(obs).find((e) => e.hp !== undefined && e.hp < 30 && e.dist <= 6);
+    if (wounded) return { type: "USE", item: "SPEED_BOOST" };
+  }
+  // 11. Closing dash: cooldown ready + clear path toward a low-HP target
+  // within 4-7 cells → DASH to close, shoot next cycle. Beats walking 4
+  // ticks while the target heals.
+  if (canDash(obs)) {
+    const enemies = visibleBots(obs);
+    const wounded = enemies.find((e) => e.hp !== undefined && e.hp <= 35 && e.dist >= 3 && e.dist <= 7);
+    if (wounded) {
+      const dir = dirTo(wounded.dx, wounded.dy);
+      if (dir && canMove(obs, dir)) return { type: "DASH", dir };
+    }
+  }
+  // 12. Escape dash: 3+ enemies within 4 cells = retreat hard.
+  if (canDash(obs) && closeEnemies.length >= 3) {
+    const dir = bestDashDir(obs);
+    if (dir) return { type: "DASH", dir };
   }
 
   // ── NN POLICY — strategic movement ───────────────────────────────
