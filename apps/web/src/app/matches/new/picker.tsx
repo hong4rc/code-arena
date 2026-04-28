@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { useToast } from "@/components/ui/Toast";
+
 interface BotRow { id: string; name: string; ownerId: string; isOfficial: boolean; isOwn: boolean }
 
 const MIN_BOTS = 2;
@@ -10,6 +12,7 @@ const MAX_BOTS = 10;
 
 export function CustomMatchPicker({ bots }: { bots: BotRow[] }) {
   const router = useRouter();
+  const toast = useToast();
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -37,9 +40,11 @@ export function CustomMatchPicker({ bots }: { bots: BotRow[] }) {
     if (!res.ok) {
       const json = await res.json().catch(() => ({}));
       setError(json.error ?? `failed (${res.status})`);
+      toast(`Match start failed: ${json.error ?? res.status}`, "error");
       return;
     }
     const json = await res.json() as { matchId: string };
+    toast("Match started — opening replay…", "success");
     router.push(`/replay/${json.matchId}`);
   }
 

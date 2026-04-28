@@ -3,11 +3,15 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
+import { RelativeTime } from "@/components/ui/RelativeTime";
+import { useToast } from "@/components/ui/Toast";
+
 interface BotRow { id: string; name: string; isOfficial: boolean; ownerId: string }
 interface MatchRow { id: string; kind: string; status: string; createdAt: string }
 
 export function AdminDataClient({ bots, matches }: { bots: BotRow[]; matches: MatchRow[] }) {
   const router = useRouter();
+  const toast = useToast();
   const [pending, start] = useTransition();
   const [busyId, setBusyId] = useState<string | null>(null);
 
@@ -16,7 +20,8 @@ export function AdminDataClient({ bots, matches }: { bots: BotRow[]; matches: Ma
     setBusyId(id);
     const res = await fetch(`/api/admin/bots/${id}`, { method: "DELETE" });
     setBusyId(null);
-    if (!res.ok) { globalThis.alert(`Delete failed: ${res.status}`); return; }
+    if (!res.ok) { toast(`Delete failed (${res.status})`, "error"); return; }
+    toast(`${name} deleted`, "success");
     start(() => router.refresh());
   }
 
@@ -25,7 +30,8 @@ export function AdminDataClient({ bots, matches }: { bots: BotRow[]; matches: Ma
     setBusyId(id);
     const res = await fetch(`/api/admin/matches/${id}`, { method: "DELETE" });
     setBusyId(null);
-    if (!res.ok) { globalThis.alert(`Delete failed: ${res.status}`); return; }
+    if (!res.ok) { toast(`Delete failed (${res.status})`, "error"); return; }
+    toast(`Match ${id.slice(0, 8)} deleted`, "success");
     start(() => router.refresh());
   }
 
@@ -34,9 +40,9 @@ export function AdminDataClient({ bots, matches }: { bots: BotRow[]; matches: Ma
     setBusyId("__wipe__");
     const res = await fetch(`/api/admin/wipe-matches`, { method: "POST" });
     setBusyId(null);
-    if (!res.ok) { globalThis.alert(`Wipe failed: ${res.status}`); return; }
+    if (!res.ok) { toast(`Wipe failed (${res.status})`, "error"); return; }
     const body = await res.json() as { removed: number };
-    globalThis.alert(`Removed ${body.removed} matches.`);
+    toast(`Removed ${body.removed} matches`, "success");
     start(() => router.refresh());
   }
 
@@ -63,7 +69,7 @@ export function AdminDataClient({ bots, matches }: { bots: BotRow[]; matches: Ma
                   <td><code>{m.id.slice(0, 8)}</code></td>
                   <td>{m.kind}</td>
                   <td><span className={`badge ${m.status}`}>{m.status}</span></td>
-                  <td style={{ color: "var(--fg-dim)" }}>{new Date(m.createdAt).toLocaleString()}</td>
+                  <td style={{ color: "var(--fg-dim)" }}><RelativeTime date={m.createdAt} /></td>
                   <td>
                     <button className="danger" onClick={() => deleteMatch(m.id)} disabled={disabled} style={{ minWidth: 88 }}>
                       {busyId === m.id ? "Deleting…" : "Delete"}

@@ -2,6 +2,10 @@
 import dynamic from "next/dynamic";
 import { useState } from "react";
 
+import { useToast } from "@/components/ui/Toast";
+
+import { BOT_HELPERS_DTS } from "./bot-helpers-dts";
+
 const Monaco = dynamic(() => import("@monaco-editor/react").then((m) => m.default), { ssr: false });
 
 interface Props {
@@ -11,6 +15,7 @@ interface Props {
 }
 
 export function BotEditor({ botId, initialName, initialCode }: Props) {
+  const toast = useToast();
   const [name, setName] = useState(initialName);
   const [code, setCode] = useState(initialCode);
   const [busy, setBusy] = useState(false);
@@ -25,9 +30,10 @@ export function BotEditor({ botId, initialName, initialCode }: Props) {
       const res = await fetch(`/api/bots/${savedId}`, { method: "DELETE" });
       if (!res.ok) {
         const json = await res.json().catch(() => ({}));
-        globalThis.alert(`Delete failed: ${json.error ?? res.status}`);
+        toast(`Delete failed: ${json.error ?? res.status}`, "error");
         return;
       }
+      toast(`${name} deleted`, "success");
       window.location.href = "/bots";
     } finally {
       setBusy(false);
@@ -50,6 +56,7 @@ export function BotEditor({ botId, initialName, initialCode }: Props) {
       }
       setSavedId(json.botId);
       setIssues(json.issues ?? []);
+      toast(botId ? "Saved" : `Bot "${name}" created`, "success");
       if (!botId) window.location.href = `/bots/${json.botId}`;
     } finally {
       setBusy(false);
@@ -74,6 +81,15 @@ export function BotEditor({ botId, initialName, initialCode }: Props) {
           value={code}
           onChange={(v) => setCode(v ?? "")}
           options={{ minimap: { enabled: false }, fontSize: 13 }}
+          beforeMount={(m) => {
+            // Inject bot-helper type defs so the editor doesn't squiggle
+            // every `canMove`, `nearestBot`, etc., and gives autocomplete.
+            m.languages.typescript.javascriptDefaults.setDiagnosticsOptions({
+              noSemanticValidation: false,
+              noSyntaxValidation: false,
+            });
+            m.languages.typescript.javascriptDefaults.addExtraLib(BOT_HELPERS_DTS, "ts:filename/bot-globals.d.ts");
+          }}
         />
       </div>
       {issues.length > 0 && (

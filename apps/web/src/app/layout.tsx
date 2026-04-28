@@ -2,6 +2,7 @@ import Link from "next/link";
 
 
 import { SignOutButton } from "@/components/SignOutButton";
+import { ToastProvider } from "@/components/ui/Toast";
 import { getCurrentUser } from "@/lib/auth";
 
 import type { ReactNode } from "react";
@@ -19,6 +20,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   return (
     <html lang="en" suppressHydrationWarning>
       <body suppressHydrationWarning>
+        <ToastProvider>
         <header className="app-header">
           <Link href="/" className="brand">⚔ Code Arena</Link>
           <Link href="/bots">My bots</Link>
@@ -49,6 +51,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
           )}
         </header>
         <main>{children}</main>
+        </ToastProvider>
       </body>
     </html>
   );

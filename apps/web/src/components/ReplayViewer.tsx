@@ -125,6 +125,26 @@ export function ReplayViewer({ matchId, initialTicks, live, botNames = {} }: Pro
     return () => clearInterval(id);
   }, [playing, ticks.length]);
 
+  // Keyboard shortcuts.
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      // Skip when typing in an input/textarea so we don't hijack user typing.
+      const t = e.target as HTMLElement | null;
+      if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return;
+      const last = ticks.length - 1;
+      switch (e.key) {
+        case " ":          { e.preventDefault(); setPlaying((p) => !p); break; }
+        case "ArrowLeft":  { setIdx((i) => Math.max(0, i - (e.shiftKey ? 10 : 1))); setPlaying(false); break; }
+        case "ArrowRight": { setIdx((i) => Math.min(last, i + (e.shiftKey ? 10 : 1))); setPlaying(false); break; }
+        case "Home":       { setIdx(0); setPlaying(false); break; }
+        case "End":        { setIdx(last); setPlaying(false); break; }
+        case "f": case "F":{ setShowFow((s) => !s); break; }
+      }
+    }
+    globalThis.addEventListener("keydown", onKey);
+    return () => globalThis.removeEventListener("keydown", onKey);
+  }, [ticks.length]);
+
   // Map bot id → stable color/index
   const botMeta = useMemo(() => {
     const ids = new Set<string>();

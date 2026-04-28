@@ -16,12 +16,14 @@
     "@monaco-editor/react": "^4.6.0",
     "@types/ws": "^8.18.1",
     "better-auth": "^1.6.9",
+    "luxon": "^3.7.2",
     "next": "^15.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "ws": "^8.20.0"
   },
   "devDependencies": {
+    "@types/luxon": "^3.7.1",
     "@types/node": "^22.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",

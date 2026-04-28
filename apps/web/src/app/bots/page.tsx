@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { EmptyState } from "@/components/ui/EmptyState";
+import { RelativeTime } from "@/components/ui/RelativeTime";
 import { composition } from "@/composition";
 import { getCurrentUser } from "@/lib/auth";
 
@@ -20,7 +22,12 @@ export default async function MyBotsPage() {
         <Link href="/bots/new"><button className="primary">New bot</button></Link>
       </div>
       {list.length === 0 ? (
-        <p>No bots yet. <Link href="/samples">Clone a sample bot</Link> or <Link href="/bots/new">start from scratch</Link>.</p>
+        <EmptyState
+          icon="🤖"
+          title="No bots yet"
+          body="Clone a sample bot to get started, or write one from scratch."
+          cta={{ href: "/samples", label: "Browse samples" }}
+        />
       ) : (
         <table>
           <thead>
@@ -30,7 +37,7 @@ export default async function MyBotsPage() {
             {list.map((b) => (
               <tr key={b.id}>
                 <td><Link href={`/bots/${b.id}`}>{b.name}</Link></td>
-                <td>{b.createdAt.toLocaleDateString()}</td>
+                <td style={{ color: "var(--fg-dim)" }}><RelativeTime date={b.createdAt} /></td>
                 <td><Link href={`/bots/${b.id}`}>Edit →</Link></td>
                 <td><DeleteBotButton botId={b.id} botName={b.name} /></td>
               </tr>

@@ -6,6 +6,7 @@ import type {
 } from "@arena/application";
 import {
   and,
+  bots,
   desc,
   eq,
   getDb,
@@ -35,6 +36,22 @@ export class DrizzleMatchRepo implements MatchRepo {
   async recent(limit: number): Promise<Match[]> {
     const rows = await this.db.select().from(matches).orderBy(desc(matches.createdAt)).limit(limit);
     return rows.map((r) => this.toMatch(r));
+  }
+
+  async recentWithWinner(limit: number) {
+    // Left-join match_participants where placement=1, then join bots for the name.
+    // A match with no winner (in-progress, failed, or tie not yet resolved) gets winnerName=null.
+    const rows = await this.db
+      .select({ match: matches, winnerName: bots.name })
+      .from(matches)
+      .leftJoin(
+        matchParticipants,
+        and(eq(matchParticipants.matchId, matches.id), eq(matchParticipants.placement, 1)),
+      )
+      .leftJoin(bots, eq(bots.id, matchParticipants.botId))
+      .orderBy(desc(matches.createdAt))
+      .limit(limit);
+    return rows.map((r) => ({ ...this.toMatch(r.match), winnerName: r.winnerName }));
   }
 
   async statsByBot(botId: string) {

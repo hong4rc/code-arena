@@ -31,6 +31,8 @@ export interface MatchRepo {
   findById(id: string): Promise<Match | null>;
   pickPending(limit: number): Promise<Match[]>;
   recent(limit: number): Promise<Match[]>;
+  /** `recent()` plus the winner bot's name (if the match is done and has a placement=1 participant). */
+  recentWithWinner(limit: number): Promise<Array<Match & { winnerName: string | null }>>;
   /** Most recent matches a given bot participated in (any version). */
   recentByBot(botId: string, limit: number): Promise<Array<Match & { placement: number | null; ratingDelta: number | null }>>;
   /** Aggregate stats across every finished match a bot participated in. */

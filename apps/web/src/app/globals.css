@@ -233,3 +233,113 @@ input::placeholder { color: var(--overlay-1); }
 
 /* Inline form (Sign out etc) */
 form.inline { display: inline; }
+
+/* ─── Toast ─────────────────────────────────────────────────── */
+.toast-stack {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 9999;
+  pointer-events: none;
+}
+.toast {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 0.9rem;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+  cursor: pointer;
+  animation: toast-slide-in 160ms ease-out;
+  max-width: 360px;
+}
+.toast-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.toast-info    .toast-dot { background: var(--blue); }
+.toast-success .toast-dot { background: var(--green); }
+.toast-error   .toast-dot { background: var(--red); }
+.toast-success { border-color: rgba(166, 209, 137, 0.3); }
+.toast-error   { border-color: rgba(231, 130, 132, 0.4); }
+@keyframes toast-slide-in {
+  from { opacity: 0; transform: translateX(20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* ─── Empty state ──────────────────────────────────────────── */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 40px 20px;
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+  background: var(--bg-card);
+  margin-top: 16px;
+}
+.empty-state-icon { font-size: 2.5rem; margin-bottom: 12px; opacity: 0.7; }
+.empty-state-title { margin: 0 0 4px; }
+.empty-state-body { margin: 0; color: var(--fg-dim); max-width: 480px; }
+
+/* ─── Responsive header ─────────────────────────────────────── */
+.app-header { flex-wrap: wrap; }
+@media (max-width: 720px) {
+  .app-header > a:not(.brand) { font-size: 0.9rem; }
+  .app-header .user-pill:not(:last-child) { display: none; } /* hide email pill on mobile, keep admin pill */
+  .app-header .admin-nav { padding: 4px 8px; }
+}
+@media (max-width: 520px) {
+  .app-header {
+    gap: 8px;
+    padding: 8px 12px;
+  }
+  .app-header .brand { width: 100%; }
+  .app-header .spacer { flex-basis: 100%; height: 0; }
+  .app-header .user-pill { font-size: 0.75rem; padding: 2px 8px; }
+}
+
+/* ─── Download menu (details/summary) ──────────────────────── */
+.dl-menu { position: relative; }
+.dl-menu summary {
+  list-style: none;
+  cursor: pointer;
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface-1);
+  font-size: 0.85rem;
+}
+.dl-menu summary::-webkit-details-marker { display: none; }
+.dl-menu summary:hover { background: var(--surface-2); }
+.dl-menu .dl-menu-list {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  min-width: 180px;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 4px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  z-index: 100;
+}
+.dl-menu .dl-menu-list a, .dl-menu .dl-menu-list button {
+  text-align: left;
+  padding: 6px 10px;
+  font-size: 0.85rem;
+  border-radius: 4px;
+  border: none;
+  background: transparent;
+  color: var(--text);
+}
+.dl-menu .dl-menu-list a:hover, .dl-menu .dl-menu-list button:hover { background: var(--surface-1); text-decoration: none; }

@@ -3,8 +3,11 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
+import { useToast } from "@/components/ui/Toast";
+
 export function DeleteBotButton({ botId, botName }: { botId: string; botName: string }) {
   const router = useRouter();
+  const toast = useToast();
   const [pending, start] = useTransition();
   const [busy, setBusy] = useState(false);
 
@@ -15,9 +18,10 @@ export function DeleteBotButton({ botId, botName }: { botId: string; botName: st
     setBusy(false);
     if (!res.ok) {
       const json = await res.json().catch(() => ({}));
-      globalThis.alert(`Delete failed: ${json.error ?? res.status}`);
+      toast(`Delete failed: ${json.error ?? res.status}`, "error");
       return;
     }
+    toast(`${botName} deleted`, "success");
     start(() => router.refresh());
   }
 

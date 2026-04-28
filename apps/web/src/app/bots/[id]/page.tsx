@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
 import { BotEditor } from "@/components/BotEditor";
+import { RelativeTime } from "@/components/ui/RelativeTime";
 import { composition } from "@/composition";
 import { getCurrentUser } from "@/lib/auth";
 
@@ -42,7 +43,7 @@ export default async function EditBotPage({ params }: { params: Promise<{ id: st
                   <td style={{ color: m.ratingDelta && m.ratingDelta > 0 ? "var(--green)" : "var(--fg-dim)" }}>
                     {m.ratingDelta === null ? "—" : (m.ratingDelta > 0 ? `+${m.ratingDelta.toFixed(1)}` : m.ratingDelta.toFixed(1))}
                   </td>
-                  <td style={{ color: "var(--fg-dim)" }}>{m.createdAt.toLocaleString()}</td>
+                  <td style={{ color: "var(--fg-dim)" }}><RelativeTime date={m.createdAt} /></td>
                   <td><Link href={`/replay/${m.id}`}>{m.status === "running" ? "Watch live →" : "Replay →"}</Link></td>
                 </tr>
               ))}
