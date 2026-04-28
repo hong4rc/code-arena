@@ -9,6 +9,7 @@ import { parse } from "node:url";
 import next from "next";
 import { WebSocketServer } from "ws";
 
+import { startKeepAliveDriver } from "./src/server/keep-alive-driver.ts";
 import { startRunnerDriver } from "./src/server/runner-driver.ts";
 import { startSchedulerDriver } from "./src/server/scheduler-driver.ts";
 import { startTrainerDriver } from "./src/server/trainer-driver.ts";
@@ -80,6 +81,9 @@ if (process.env.DISABLE_BACKGROUND !== "1") {
     startTrainerDriver();
   }
 }
+// Keep Render free tier from spinning down (loops out → public DNS → back in).
+// Disabled in dev automatically (NODE_ENV !== production) and via DISABLE_KEEPALIVE=1.
+startKeepAliveDriver();
 
 for (const sig of ["SIGINT", "SIGTERM"] as const) {
   process.on(sig, () => {
