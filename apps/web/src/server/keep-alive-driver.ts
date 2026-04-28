@@ -10,7 +10,10 @@
 //   DISABLE_KEEPALIVE=1    skip entirely
 import { setTimeout as setT } from "node:timers";
 
-const DEFAULT_INTERVAL_MS = 10 * 60 * 1000;
+// Default to 30 s — aggressive but cheap, and guarantees the service never
+// idles. Render free tier has no request quota; only bandwidth, which a
+// 200-byte healthcheck doesn't dent.
+const DEFAULT_INTERVAL_MS = 30 * 1000;
 
 let timer: ReturnType<typeof setInterval> | null = null;
 
@@ -38,7 +41,7 @@ export function startKeepAliveDriver(): void {
 
   console.log(`[keepalive] starting — pinging ${target} every ${intervalMs / 1000}s`);
   // First ping after a short delay so it doesn't race the server's own boot.
-  setT(() => void ping(target), 30000);
+  setT(() => void ping(target), 5000);
   timer = setInterval(() => void ping(target), intervalMs);
 }
 
