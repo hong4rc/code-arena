@@ -36,7 +36,7 @@ export function TrainingClient({ rows }: { rows: BotRow[] }) {
       </p>
       <table>
         <thead>
-          <tr><th>Name</th><th>Owner</th><th>Type</th><th>Trainer</th></tr>
+          <tr><th>Name</th><th>Owner</th><th>Type</th><th>Trainer</th><th>Params</th></tr>
         </thead>
         <tbody>
           {rows.map((b) => (
@@ -53,6 +53,14 @@ export function TrainingClient({ rows }: { rows: BotRow[] }) {
                 >
                   {busyId === b.id ? "…" : (b.isTrainingTarget ? "Stop training" : "Start training")}
                 </button>
+              </td>
+              <td style={{ display: "flex", gap: 8 }}>
+                <a href={`/api/admin/bots/${b.id}/params`} download style={{ fontSize: "0.85em" }}>
+                  ⇩ latest
+                </a>
+                <a href={`/api/admin/bots/${b.id}/params?history=20`} download style={{ fontSize: "0.85em", color: "var(--fg-dim)" }}>
+                  history×20
+                </a>
               </td>
             </tr>
           ))}
