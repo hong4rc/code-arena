@@ -186,8 +186,27 @@ function realiseNNAction(name, obs) {
 }
 
 // ─────────────────────────────────────────────────────────────────────
-// MLP forward pass + init helpers (unchanged).
+// MLP forward pass.
+//
+// Activations:
+//   • Hidden layers: LeakyReLU(0.1).
+//     Plain ReLU dies (zero output) for ~50% of random inits — wasted
+//     capacity in an ES-evolved net where dead neurons can't recover via
+//     gradient flow. LeakyReLU keeps a small slope on negatives.
+//   • Output layer: linear (raw logits → argmax for action selection).
+//     No softmax: we don't sample, we just take the highest legal action.
+//
+// Easy swaps (edit `act` below):
+//   tanh:    Math.tanh(s)
+//   sigmoid: 1 / (1 + Math.exp(-s))   — outputs (0,1)
+//   relu:    Math.max(0, s)           — fast but can dead-neuron
+//   leaky:   s > 0 ? s : 0.1 * s      — current default
+//   gelu:    0.5 * s * (1 + Math.tanh(0.7978845608 * (s + 0.044715 * s ** 3)))
 // ─────────────────────────────────────────────────────────────────────
+
+function act(s) {
+  return s > 0 ? s : 0.1 * s; // LeakyReLU(0.1)
+}
 
 function totalWeights(shape) {
   let n = 0;
@@ -204,7 +223,7 @@ function forward(input, flat, shape) {
     for (let j = 0; j < no; j++) {
       let s = flat[off + ni * no + j];
       for (let k = 0; k < ni; k++) s += acts[k] * flat[off + j * ni + k];
-      out[j] = l === shape.length - 2 ? s : Math.tanh(s);
+      out[j] = l === shape.length - 2 ? s : act(s);
     }
     off += ni * no + no;
     acts = out;
@@ -213,7 +232,11 @@ function forward(input, flat, shape) {
 }
 
 function randomWeights(n) {
-  return Array.from({ length: n }, () => gauss() * 0.2);
+  // He init for ReLU-family activations: std = sqrt(2 / fan_in).
+  // We don't know fan_in per weight here, so use a single conservative scale
+  // tuned for the deepest layer of the default SHAPE. Fine in practice; ES
+  // adapts σ around whatever the init gave us anyway.
+  return Array.from({ length: n }, () => gauss() * 0.3);
 }
 
 function gauss() {
