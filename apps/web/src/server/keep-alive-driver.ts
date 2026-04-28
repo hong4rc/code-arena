@@ -10,10 +10,9 @@
 //   DISABLE_KEEPALIVE=1    skip entirely
 import { setTimeout as setT } from "node:timers";
 
-// Default to 30 s — aggressive but cheap, and guarantees the service never
-// idles. Render free tier has no request quota; only bandwidth, which a
-// 200-byte healthcheck doesn't dent.
-const DEFAULT_INTERVAL_MS = 30 * 1000;
+// Default to 4 min — safely under Render's 15 min idle cutoff, slow enough
+// to not get rate-limited by Render's CDN. Override with KEEPALIVE_INTERVAL_MS.
+const DEFAULT_INTERVAL_MS = 4 * 60 * 1000;
 
 let timer: ReturnType<typeof setInterval> | null = null;
 
