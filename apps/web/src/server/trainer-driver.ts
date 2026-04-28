@@ -21,16 +21,19 @@ import { composition } from "@/composition";
 const cfg = {
   envBotIds: (process.env.TRAINER_BOT_IDS ?? "")
     .split(",").map((s) => s.trim()).filter(Boolean),
-  opponentPoolSize: Number(process.env.TRAINER_OPPONENT_POOL_SIZE ?? 5),
+  // Defaults tuned for Render free 512 MB — fast rotation across all flagged
+  // bots while staying under memory budget, with each match long enough for
+  // real zone-collapse / bullet-trade dynamics.
+  opponentPoolSize: Number(process.env.TRAINER_OPPONENT_POOL_SIZE ?? 3),  // 4-bot match (1 trainee + 3 opp); ~280 MB peak
   includeOfficial: process.env.TRAINER_INCLUDE_OFFICIAL !== "0",
-  matchesPerRound: Number(process.env.TRAINER_MATCHES_PER_ROUND ?? 30),
+  matchesPerRound: Number(process.env.TRAINER_MATCHES_PER_ROUND ?? 12),   // ~30s per round vs ~75s before
   sigma: Number(process.env.TRAINER_SIGMA ?? 0.04),
-  sigmaMax: Number(process.env.TRAINER_SIGMA_MAX ?? 0.15),
-  batch: Number(process.env.TRAINER_BATCH ?? 12),
+  sigmaMax: Number(process.env.TRAINER_SIGMA_MAX ?? 0.1),                 // tighter cap, less wandering after a noisy promotion
+  batch: Number(process.env.TRAINER_BATCH ?? 6),                          // ES decision every 6 matches (was 12); faster adapt
   mutationRate: Number(process.env.TRAINER_MUTATION_RATE ?? 0.08),
-  ticks: Number(process.env.TRAINER_TICKS ?? 300),
-  sleepMs: Number(process.env.TRAINER_SLEEP_MS ?? 10000),
-  reloadEvery: Number(process.env.TRAINER_RELOAD_TARGETS_EVERY ?? 1),
+  ticks: Number(process.env.TRAINER_TICKS ?? 600),                        // 67% of full 900-tick prod match — full zone cycle
+  sleepMs: Number(process.env.TRAINER_SLEEP_MS ?? 5000),                  // shorter idle between rounds
+  reloadEvery: Number(process.env.TRAINER_RELOAD_TARGETS_EVERY ?? 2),     // re-poll DB every other round, less query churn
 };
 
 const SIGMA_MIN = 0.01;
