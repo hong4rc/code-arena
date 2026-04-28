@@ -27,8 +27,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
           <Link href="/leaderboard">Leaderboard</Link>
           {user?.role === "admin" && (
             <span className="admin-nav">
-              <Link href="/admin/training">Training</Link>
-              <Link href="/admin/data">Data</Link>
+              <Link href="/admin">Admin</Link>
             </span>
           )}
           <span className="spacer" />
