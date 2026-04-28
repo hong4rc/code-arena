@@ -19,6 +19,7 @@ const SAMPLES = [
   { name: "zone-bot", file: "bots/samples/zone-bot.js", description: "Zone-runner — always heads for the safest cell. Avoids fights." },
   { name: "god-bot", file: "bots/samples/god-bot.js", description: "Best-of-class baseline — leads bullet shots, dodges, kites, full loot economy." },
   { name: "nn-bot", file: "bots/samples/nn-bot.js", description: "Neural-network brain (40→32→24→15). Self-evolves weights via (1+1)-ES across matches." },
+  { name: "uber-bot", file: "bots/samples/uber-bot.js", description: "Best-of-class: residual NN, action history, multi-bullet vector dodge, action masking, lead-shot, value-aware loot. ~3500 weights." },
 ];
 
 function findRepoRoot(start: string): string {
